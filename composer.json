@@ -1,0 +1,14 @@
+{
+  "name": "linfly/annotation",
+  "type": "library",
+  "license": "MIT",
+  "description": "Webman plugin linfly/annotation",
+  "require": {
+    "doctrine/annotations": "^1.13"
+  },
+  "autoload": {
+    "psr-4": {
+      "LinFly\\Annotation\\": "./src"
+    }
+  }
+}
