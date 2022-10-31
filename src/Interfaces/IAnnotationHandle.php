@@ -16,8 +16,7 @@ interface IAnnotationHandle
      * 注解处理
      * @access public
      * @param array $item
-     * @param string $className
      * @return void
      */
-    public static function handle(array $item, string $className): void;
+    public static function handle(array $item): void;
 }

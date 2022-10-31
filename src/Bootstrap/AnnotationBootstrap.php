@@ -28,8 +28,8 @@ class AnnotationBootstrap implements Bootstrap
 
     public static function start($worker)
     {
-        // console monitor进程不执行
-        if (!$worker || $worker->name == 'monitor') {
+        // monitor进程不执行
+        if ($worker?->name == 'monitor') {
             return;
         }
 

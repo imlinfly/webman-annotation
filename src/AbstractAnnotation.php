@@ -58,7 +58,7 @@ abstract class AbstractAnnotation implements IAnnotationItem
         }
 
         // 注释解析 指定参数传参
-        $args = $args[0];
+        $args = $args[0] ?? [];
         if (isset($args['value'])) {
             $args[$firstParameter] = $args['value'];
             unset($args['value']);
@@ -107,6 +107,7 @@ abstract class AbstractAnnotation implements IAnnotationItem
     {
         $this->_arguments = [];
 
+        // 按序传参，不指定参数名
         if (isset($args[0])) {
             foreach ($args as $index => $value) {
                 if (is_string($index)) {

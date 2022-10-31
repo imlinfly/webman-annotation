@@ -12,6 +12,32 @@
 composer require linfly/annotation
 ```
 
+## 配置
+
+> 配置文件路径：/plugin/linfly/annotation/annotation.php
+
+```php
+<?php
+
+return [
+    // 注解扫描路径
+    'include_paths' => [
+        // 应用目录
+        'app',
+    ],
+    // 扫描排除的路径 支持通配符: *
+    'exclude_paths' => [
+        'app/model',
+    ],
+    // 路由设置
+    'route' => [
+        // 如果注解路由 @Route() 未传参则默认使用方法名作为path
+        'use_default_method' => true,
+    ],
+];
+
+```
+
 ## 使用
 
 ### 注解路由
@@ -78,28 +104,188 @@ class ApiController
 }
 ```
 
-## 配置文件
+## 自定义注解类
 
-> 文件路径：/plugin/linfly/annotation/annotation.php
+### 第一步：创建注解类
+
+> 注解类需要继承 `LinFly\Annotation\Annotation\Annotation` 类
+>
+> 注解类需要声明 `@Annotation`、`@Target`、`#[\Attribute()]` 注解
+
+测试代码：[annotation-demo](https://github.com/imlinfly/webman-annotation/tree/master/demo/annotation-demo.zip)
+
+#### 控制器注解类
 
 ```php
-<?php
+use Doctrine\Common\Annotations\Annotation\Target;
+use LinFly\Annotation\AbstractAnnotation;
 
+/**
+ * @Annotation
+ * @Target({"CLASS"})
+ */
+#[\Attribute(\Attribute::TARGET_CLASS)]
+class TestControllerParams extends AbstractAnnotation
+{
+    /**
+     * 第一个参数必须包含array类型，用来接收注解的参数
+     * @param string|array $controller
+     */
+    public function __construct(public string|array $controller = '')
+    {
+        $this->paresArgs(func_get_args(), 'name');
+    }
+}
+```
+
+#### 方法注解类
+
+```php
+use Doctrine\Common\Annotations\Annotation\Target;
+use LinFly\Annotation\AbstractAnnotation;
+
+/**
+ * @Annotation
+ * @Target({"METHOD"})
+ */
+#[\Attribute(\Attribute::TARGET_METHOD)]
+class TestMethodParams extends AbstractAnnotation
+{
+    /**
+     * 第一个参数必须包含array类型，用来接收注解的参数
+     * @param string|array $method
+     */
+    public function __construct(public string|array $method = '')
+    {
+        $this->paresArgs(func_get_args(), 'method');
+    }
+}
+```
+
+### 第二步：使用注解类
+
+```php
+use app\annotation\params\TestControllerParams;
+use app\annotation\params\TestMethodParams;
+use support\Request;
+
+/**
+ * 自定义类的注解类
+ * @TestControllerParams(controller=IndexController::class)
+ */
+// PHP8原生注解
+// #[TestControllerParams(controller: IndexController::class)]
+class IndexController
+{
+    /**
+     * 自定义方法的注解类
+     * @TestMethodParams(method="index")
+     */
+    // PHP8原生注解
+    // #[TestMethodParams(method: __METHOD__)]
+    public function index(Request $request)
+    {
+        // 业务代码 ...
+    }
+}
+```
+
+### 第三步：获取注解类的参数
+
+#### 方法一：通过 LinFly\Annotation\Annotation\Annotation::yieldParseClassAnnotations() 方法获取
+
+```php
+use app\annotation\params\TestControllerParams;
+use app\annotation\params\TestMethodParams;
+use LinFly\Annotation\Annotation;
+
+// 获取指定类的注解列表 包括：类注解、属性注解、方法注解、方法参数注解
+$generator = Annotation::yieldParseClassAnnotations(IndexController::class);
+/**
+ * @var string $annotationName 注解类类名
+ * @var array $items 注解类参数列表
+ */
+foreach ($generator as $annotationName => $items) {
+    switch ($annotationName) {
+        case TestControllerParams::class:
+        case TestMethodParams::class:
+            foreach ($items as $item) {
+                var_dump($item['type'] . ' -> ' . $item['class']);
+            }
+            break;
+    }
+}
+```
+
+#### 方法二：通过 AnnotationHandle 获取
+
+程序启动时会扫描所有的注解类，扫描完成后会调用已绑定注解类的回调事件
+
+1. 新建Handle类
+   注意：Handle类需要继承 `LinFly\Annotation\Handle\Handle` 类
+
+```php
+namespace app\annotation\handle;
+
+use LinFly\Annotation\Interfaces\IAnnotationHandle;
+
+class TestHandle implements IAnnotationHandle
+{
+    public static function handle(array $item): void
+    {
+        switch ($item['type']) {
+            case 'class':
+            case 'method':
+                var_dump($item['type'] . ' -> ' . $item['class']);
+                break;
+        }
+    }
+}
+```
+
+2. 新建Bootstrap类
+   参考资料：[webman业务初始化](https://www.workerman.net/doc/webman/others/bootstrap.html)
+
+```php
+namespace app\bootstrap;
+
+use app\annotation\handle\TestHandle;
+use app\annotation\params\TestControllerParams;
+use app\annotation\params\TestMethodParams;
+use LinFly\Annotation\Annotation;
+use Webman\Bootstrap;
+
+class CreateAnnotationHandle implements Bootstrap
+{
+    /**
+     * start
+     * @access public
+     * @param $worker
+     * @return void
+     */
+    public static function start($worker)
+    {
+        // monitor进程不执行
+        if ($worker?->name === 'monitor') {
+            return;
+        }
+
+        // 添加测试控制器注解类处理器
+        Annotation::addHandle(TestControllerParams::class, TestHandle::class);
+        // 添加测试控制器方法注解类处理器
+        Annotation::addHandle(TestMethodParams::class, TestHandle::class);
+    }
+}
+```
+
+3. 配置随进程启动
+
+打开`config/bootstrap.php`将`CreateAnnotationHandle`类加入到启动项中。
+
+```php
 return [
-    // 注解扫描路径
-    'include_paths' => [
-        // 应用目录
-        'app',
-    ],
-    // 扫描排除的路径 支持通配符: *
-    'exclude_paths' => [
-        'app/model',
-    ],
-    // 路由设置
-    'route' => [
-        // 如果注解路由 @Route() 未传参则默认使用方法名作为path
-        'use_default_method' => false,
-    ],
+    // ...这里省略了其它配置...
+    
+    app\bootstrap\CreateAnnotationHandle::class,
 ];
-
 ```

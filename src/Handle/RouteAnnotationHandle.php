@@ -40,15 +40,14 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
      * 处理路由注解
      * @access public
      * @param array $item
-     * @param string $className
      * @return void
      */
-    public static function handle(array $item, string $className): void
+    public static function handle(array $item): void
     {
         if ($item['type'] === 'class') {
-            self::handleClassAnnotation($item, $className);
+            self::handleClassAnnotation($item, $item['class']);
         } else if ($item['type'] === 'method') {
-            self::handleMethodAnnotation($item, $className);
+            self::handleMethodAnnotation($item, $item['class']);
         }
     }
 
@@ -117,7 +116,7 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
         $useDefaultMethod = config('plugin.linfly.annotation.annotation.route.use_default_method', true);
 
         foreach (self::$routes as $item) {
-            $parameters = $item['arguments'];
+            $parameters = $item['parameters'];
 
             if (!isset($item['arguments']['path']) && $useDefaultMethod) {
                 $parameters['path'] = $item['method'];
