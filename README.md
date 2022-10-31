@@ -112,7 +112,7 @@ class ApiController
 >
 > 注解类需要声明 `@Annotation`、`@Target`、`#[\Attribute()]` 注解
 
-测试代码：[annotation-demo](https://github.com/imlinfly/webman-annotation/tree/master/demo/annotation-demo.zip)
+测试代码：[annotation-demo](https://github.com/imlinfly/webman-annotation/raw/master/demo/annotation-demo.zip)
 
 #### 控制器注解类
 
