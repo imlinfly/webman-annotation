@@ -36,7 +36,7 @@ abstract class AbstractAnnotation implements IAnnotationItem
      * 解析参数
      * @access public
      * @param array $args
-     * @param string $firstParameter
+     * @param string $firstParameter 构造方法的第一个参数名
      * @return array
      */
     protected function paresArgs(array $args, string $firstParameter): array

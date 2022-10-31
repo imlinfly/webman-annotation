@@ -21,6 +21,15 @@ return [
     // 路由设置
     'route' => [
         // 如果注解路由 @Route() 未传参则默认使用方法名作为path
-        'use_default_method' => false,
+        'use_default_method' => true,
+    ],
+    // 验证器注解
+    'validate' => [
+        // 验证器验证处理类 (该功能需要自行安装对应的验证器扩展包)，目前只支持 think-validate
+        'handle' => LinFly\Annotation\Validate\Handle\ThinkValidate::class,
+        // 验证失败处理方法
+        'fail_handle' => function (Webman\Http\Request $request, string $message) {
+            return json(['code' => 500, 'msg' => $message]);
+        }
     ],
 ];

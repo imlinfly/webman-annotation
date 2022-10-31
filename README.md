@@ -34,6 +34,15 @@ return [
         // 如果注解路由 @Route() 未传参则默认使用方法名作为path
         'use_default_method' => true,
     ],
+    // 验证器注解
+    'validate' => [
+        // 验证器验证处理类 (该功能需要自行安装对应的验证器扩展包)，目前只支持 think-validate
+        'handle' => LinFly\Annotation\Validate\Handle\ThinkValidate::class,
+        // 验证失败处理方法
+        'fail_handle' => function (Webman\Http\Request $request, string $message) {
+            return json(['code' => 500, 'msg' => $message]);
+        }
+    ],
 ];
 
 ```
@@ -101,6 +110,48 @@ class ApiController
      {
          return 'get';
      }
+}
+```
+
+## 注解验证器
+
+> 验证器注解需要配合验证器扩展包使用，目前只支持 think-validate
+> 验证器验证成功会继续执行，验证失败则调用配置的 fail_handle 方法终止执行
+
+```php
+use app\validate\UserValidate;
+use LinFly\Annotation\Validate\Validate;
+use support\Request;
+use support\Response;
+
+class IndexController
+{
+    /**
+     * @access public
+     * 
+     * 注解验证器参数说明 
+     * @param string|array $params 验证器参数 支持多个，例如: {"$get.id", "$post.name", "$post.title"}
+     * 验证器参数 支持：
+     * $post 获取所有 POST 参数
+     * $get 获取所有 GET 参数
+     * $all 获取所有 REQUEST 参数
+     * $post.xx 自定义 POST 参数名称 xx为实际的参数名称
+     * $get.xx 自定义 GET 参数名称 xx为实际的参数名称
+     * xx 自定义 REQUEST 参数名称 xx为实际的参数名称
+     * @param string $validate 验证器类名
+     * @param string $scene 验证场景
+     * 
+     *  
+     * @Validate(validate=UserValidate::class)
+     * @param Request $request
+     * @return Response
+     */
+    // PHP8注解方式
+    //#[Validate(validate: UserValidate::class)]
+    public function index(Request $request)
+    {
+        return response('hello webman');
+    }
 }
 ```
 
