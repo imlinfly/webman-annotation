@@ -210,7 +210,7 @@ foreach ($generator as $annotationName => $items) {
         case TestControllerParams::class:
         case TestMethodParams::class:
             foreach ($items as $item) {
-                var_dump($item['type'] . ' -> ' . $item['class']);
+                var_dump($item['type'] . ' -> ' . $item['annotation']);
             }
             break;
     }
@@ -236,7 +236,7 @@ class TestHandle implements IAnnotationHandle
         switch ($item['type']) {
             case 'class':
             case 'method':
-                var_dump($item['type'] . ' -> ' . $item['class']);
+                var_dump($item['type'] . ' -> ' . $item['annotation']);
                 break;
         }
     }
