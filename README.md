@@ -165,7 +165,7 @@ class IndexController
 >
 > 注解类需要声明 `@Annotation`、`@Target`、`#[\Attribute()]` 注解
 
-测试代码：[annotation-example](https://github.com/imlinfly/webman-annotation/raw/master/example/annotation-demo.zip)
+测试代码：[annotation-example](https://github.com/imlinfly/webman-annotation/raw/master/example/annotation-example.zip)
 
 #### 控制器注解类
 
