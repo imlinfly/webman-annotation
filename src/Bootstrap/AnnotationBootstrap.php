@@ -58,6 +58,6 @@ class AnnotationBootstrap implements Bootstrap
         // 中间件注解
         Annotation::addHandle(Middleware::class, RouteAnnotationHandle::class);
         // 验证器注解
-        Annotation::addHandle(Validate::class, ValidateAnnotationHandle::class);
+        Annotation::addHandle(Validate::class, RouteAnnotationHandle::class);
     }
 }

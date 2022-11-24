@@ -97,14 +97,16 @@ class ApiController
     /**
      * 注解中间件 需要和注解路由一起使用
      * @param string|array $middlewares 路由中间件 支持多个中间件
+     * @param array $only 指定需要走中间件的方法, 不指定则全部走中间件, 与except互斥
+     * @param array $except 指定不需要走中间件的方法, 不指定则全部走中间件, 与only互斥
      * 
      * @Route(path="get", methods="get")
      * 
-     * @Middleware(middlewares=AuthMiddleware::class)
+     * @Middleware(middlewares=AuthMiddleware::class, only={"get"})
      * @Middleware(middlewares={AuthMiddleware::class, TokenCheckMiddleware::class})
      */
      // PHP8注解方式
-     #[Middleware(middlewares=AuthMiddleware::class)]
+     #[Middleware(middlewares=AuthMiddleware::class, only: ['get'])]
      #[Middleware(middlewares=[AuthMiddleware::class, TokenCheckMiddleware::class])]
      public function get()
      {
@@ -163,7 +165,7 @@ class IndexController
 >
 > 注解类需要声明 `@Annotation`、`@Target`、`#[\Attribute()]` 注解
 
-测试代码：[annotation-demo](https://github.com/imlinfly/webman-annotation/raw/master/demo/annotation-demo.zip)
+测试代码：[annotation-example](https://github.com/imlinfly/webman-annotation/raw/master/example/annotation-demo.zip)
 
 #### 控制器注解类
 
@@ -184,7 +186,7 @@ class TestControllerParams extends AbstractAnnotation
      */
     public function __construct(public string|array $controller = '')
     {
-        $this->paresArgs(func_get_args(), 'name');
+        $this->paresArgs(func_get_args(), 'controller');
     }
 }
 ```
@@ -340,3 +342,11 @@ return [
     app\bootstrap\CreateAnnotationHandle::class,
 ];
 ```
+
+## 更新日志
+
+### v1.0.3
+
+1. 修复中间件注解和验证器注解执行顺序问题。
+2. 新增中间件only和except参数, 用于指定中间件只在指定的方法执行。
+3. 新增在控制器上使用验证器注解。

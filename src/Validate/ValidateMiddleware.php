@@ -27,10 +27,10 @@ class ValidateMiddleware implements MiddlewareInterface
      */
     public function process(Request $request, callable $handler): Response
     {
-        /** @var IValidateHandle $handle */
+        /** @var IValidateHandle $validateHandle */
         // 无验证器验证 或 验证器验证处理类为空则不处理
         if (!ValidateAnnotationHandle::isExistValidate($request->controller, $request->action)
-            || empty($handle = AnnotationBootstrap::$config['validate']['handle'] ?? '')) {
+            || empty($validateHandle = AnnotationBootstrap::$config['validate']['handle'] ?? '')) {
             return $handler($request);
         }
 
@@ -46,7 +46,7 @@ class ValidateMiddleware implements MiddlewareInterface
             ];
 
             // 验证器验证处理
-            if (true !== ($result = $handle::handle($request, $params))) {
+            if (true !== ($result = $validateHandle::handle($request, $params))) {
                 // 调用验证器验证失败处理
                 return (AnnotationBootstrap::$config['validate']['fail_handle'] ?? function (Request $request, string $message) {
                     return json(['code' => 500, 'msg' => $message]);

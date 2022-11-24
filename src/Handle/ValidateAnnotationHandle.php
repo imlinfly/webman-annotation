@@ -62,19 +62,21 @@ class ValidateAnnotationHandle implements IAnnotationHandle
      */
     public static function isExistValidate(string $class, string $method): bool
     {
-        return isset(self::$validates[$class . '::' . $method]);
+        return isset(self::$validates[$class]) || isset(self::$validates[$class . '::' . $method]);
     }
 
     /**
      * 获取验证器列表
      * @access public
      * @param string $class
-     * @param string $method
+     * @param string|null $method
      * @return Generator
      */
-    public static function getValidates(string $class, string $method): Generator
+    public static function getValidates(string $class, string $method = null): Generator
     {
+        // 类验证器
+        yield from self::$validates[$class] ?? [];
         // 类方法验证器
-        yield from self::$validates[$class . '::' . $method] ?? [];
+        $method && yield from self::$validates[$class . '::' . $method] ?? [];
     }
 }

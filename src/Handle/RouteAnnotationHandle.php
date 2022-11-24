@@ -14,7 +14,10 @@ use LinFly\Annotation\Interfaces\IAnnotationHandle;
 use LinFly\Annotation\Route\Controller;
 use LinFly\Annotation\Route\Middleware;
 use LinFly\Annotation\Route\Route;
+use LinFly\Annotation\Validate\Validate;
+use LinFly\Annotation\Validate\ValidateMiddleware;
 use Webman\Route as WebManRoute;
+use Webman\Route\Route as RouteObject;
 
 abstract class RouteAnnotationHandle implements IAnnotationHandle
 {
@@ -29,6 +32,12 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
      * @var array
      */
     protected static array $middlewares = [];
+
+    /**
+     * 验证器
+     * @var array
+     */
+    protected static array $validates = [];
 
     /**
      * 保存的路由
@@ -72,8 +81,18 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
 
             // 控制器中间件注解
             case Middleware::class:
-                $middlewares = static::$middlewares[$className] ??= [];
-                static::$middlewares[$className] = array_merge($middlewares, (array)$parameters['middlewares']);
+                static::$middlewares[$className] ??= [];
+                static::$middlewares[$className][] = [
+                    'middlewares' => (array)$parameters['middlewares'],
+                    'only' => $parameters['only'],
+                    'except' => $parameters['except'],
+                ];
+                break;
+
+            // 验证器注解
+            case Validate::class:
+                // 转发到验证器注解处理
+                ValidateAnnotationHandle::handle($item);
                 break;
         }
     }
@@ -101,6 +120,12 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
             case Middleware::class:
                 $middlewares = static::$middlewares[$className . ':' . $method] ??= [];
                 static::$middlewares[$className . ':' . $method] = array_merge($middlewares, (array)$parameters['middlewares']);
+                break;
+
+            // 验证器注解
+            case Validate::class:
+                // 转发到验证器注解处理
+                ValidateAnnotationHandle::handle($item);
                 break;
         }
     }
@@ -162,10 +187,48 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
         $parameters['params'] && $route->setParams($parameters['params']);
         // 路由名称
         $parameters['name'] && $route->name($parameters['name']);
-        // 控制器中间件
-        $route->middleware(self::$middlewares[$item['class']] ?? null);
+        // 路由中间件
+        self::addMiddleware($route, $item['class'], $item['method']);
+    }
+
+    /**
+     * 添加中间件
+     * @param RouteObject $route
+     * @param string $class
+     * @param string $method
+     * @return void
+     */
+    protected static function addMiddleware(RouteObject $route, string $class, string $method)
+    {
+        // 类中间件
+        $classMiddlewares = self::$middlewares[$class] ?? [];
         // 方法中间件
-        $route->middleware(self::$middlewares[$item['class'] . ':' . $item['method']] ?? null);
+        $methodMiddlewares = self::$middlewares[$class . ':' . $method] ?? [];
+
+        // 添加类中间件
+        foreach ($classMiddlewares as $item) {
+            // 填写了only参数且不在only参数中则跳过
+            if ($item['only'] && !in_array($method, self::toLowerArray($item['only']))) {
+                continue;
+            } // 填写了except参数且在except参数中则跳过
+            else if ($item['except'] && in_array($method, self::toLowerArray($item['except']))) {
+                continue;
+            }
+            $route->middleware($item['middlewares']);
+        }
+
+        // 添加方法中间件
+        $route->middleware($methodMiddlewares);
+
+        // 如果有验证器注解则添加验证器中间件
+        if (ValidateAnnotationHandle::isExistValidate($class, $method)) {
+            $route->middleware(ValidateMiddleware::class);
+        }
+    }
+
+    protected static function toLowerArray(array $data)
+    {
+        return array_map(fn($item) => strtolower($item), $data);
     }
 
     /**

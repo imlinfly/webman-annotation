@@ -23,11 +23,12 @@ class Middleware extends AbstractAnnotation
 {
     /**
      * 注解中间件
-     * @param string|array $middlewares 路由中间件 支持多个
+     * @param string|array $middlewares 路由中间件 支持多个中间件
+     * @param array $only 指定需要走中间件的方法, 不指定则全部走中间件, 与except互斥
+     * @param array $except 指定不需要走中间件的方法, 不指定则全部走中间件, 与only互斥
      */
-    public function __construct(public string|array $middlewares)
+    public function __construct(public string|array $middlewares, public array $only = [], public array $except = [])
     {
-        // 解析参数
         $this->paresArgs(func_get_args(), 'middlewares');
     }
 }
