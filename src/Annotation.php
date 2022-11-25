@@ -94,37 +94,6 @@ abstract class Annotation
                 continue;
             }
 
-            // // 解析类的注解
-            // $classAnnotation = self::parseClassAnnotations($reflection);
-            // $classAnnotation['class'] = [$className => $classAnnotation['class']];
-            //
-            // // 循环解析类型 $type: class、method、property
-            // foreach ($classAnnotation as $type => $items) {
-            //     // 循环类型的解析类型
-            //     // $name：className、methodName、propertyName、methodParameterName
-            //     // $annotations: 对应类型的注解列表
-            //     foreach ($items as $annotations) {
-            //         if ($type === 'method') {
-            //             $annotations = [...array_values($annotations['methods']), ...array_values($annotations['parameters'])];
-            //         }
-            //         // 循环解析的循环注解列表
-            //         foreach ($annotations as $annotation) {
-            //             // 循环注解的多个结果
-            //             foreach ($annotation as $item) {
-            //                 // 注解类
-            //                 $annotationClass = $item['annotation'];
-            //                 // 调用注解处理类
-            //                 if (isset(self::$handle[$annotationClass])) {
-            //                     /** @var IAnnotationHandle $handle */
-            //                     foreach (self::$handle[$annotationClass] as $handle) {
-            //                         [$handle, 'handle']($item, $className);
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
-
             // 解析类的注解
             foreach (self::yieldParseClassAnnotations($reflection) as $annotations) {
                 // 遍历注解结果集
@@ -496,9 +465,9 @@ abstract class Annotation
     /**
      * 获取注释解析器
      * @access public
-     * @return AnnotationReader|null
+     * @return AnnotationReader
      */
-    public static function getAnnotationReader()
+    public static function getAnnotationReader(): AnnotationReader
     {
         if (is_null(self::$annotationReader)) {
             self::$annotationReader = new AnnotationReader();

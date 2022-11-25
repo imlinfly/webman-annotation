@@ -16,6 +16,7 @@ use LinFly\Annotation\Route\Controller;
 use LinFly\Annotation\Route\Middleware;
 use LinFly\Annotation\Route\Route;
 use LinFly\Annotation\Validate\Validate;
+use ReflectionException;
 use Webman\Bootstrap;
 use LinFly\Annotation\Annotation;
 
@@ -26,14 +27,32 @@ class AnnotationBootstrap implements Bootstrap
             'app',
         ],
         'exclude_paths' => [],
+        'route' => [
+            'use_default_method' => true,
+        ],
     ];
 
+    /**
+     * 进程名称
+     * @var string
+     */
+    protected static string $workerName = '';
+
+    /**
+     * 注解配置
+     * @var array
+     */
     public static array $config = [];
 
+    /**
+     * @param $worker
+     * @return void
+     * @throws ReflectionException
+     */
     public static function start($worker)
     {
-        // monitor进程不执行
-        if ($worker?->name == 'monitor') {
+        // 跳过忽略的进程
+        if (!$worker || self::isIgnoreProcess(self::$workerName = $worker->name)) {
             return;
         }
 
@@ -49,6 +68,10 @@ class AnnotationBootstrap implements Bootstrap
         Annotation::parseAnnotations($generator);
     }
 
+    /**
+     * 设置注解处理回调
+     * @return void
+     */
     protected static function createAnnotationHandle()
     {
         // 控制器注解
@@ -58,6 +81,32 @@ class AnnotationBootstrap implements Bootstrap
         // 中间件注解
         Annotation::addHandle(Middleware::class, RouteAnnotationHandle::class);
         // 验证器注解
-        Annotation::addHandle(Validate::class, RouteAnnotationHandle::class);
+        Annotation::addHandle(Validate::class, ValidateAnnotationHandle::class);
+    }
+
+    /**
+     * 是否为忽略的进程
+     * @param string|null $name
+     * @return bool
+     */
+    public static function isIgnoreProcess(string $name = null): bool
+    {
+        if (empty($name)) {
+            $name = self::$workerName;
+        }
+
+        return in_array($name, [
+            '',
+            'monitor',
+        ]);
+    }
+
+    /**
+     * 获取进程名称
+     * @return string
+     */
+    public static function getWorkerName(): string
+    {
+        return self::$workerName;
     }
 }

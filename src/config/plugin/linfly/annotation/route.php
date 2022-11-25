@@ -10,4 +10,8 @@ declare (strict_types=1);
 
 namespace LinFly\Annotation\Handle;
 
-RouteAnnotationHandle::createRoute();
+use LinFly\Annotation\Bootstrap\AnnotationBootstrap;
+
+if (!AnnotationBootstrap::isIgnoreProcess()) {
+    RouteAnnotationHandle::createRoute();
+}

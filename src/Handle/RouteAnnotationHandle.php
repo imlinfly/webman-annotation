@@ -10,11 +10,11 @@ declare (strict_types=1);
 
 namespace LinFly\Annotation\Handle;
 
+use LinFly\Annotation\Bootstrap\AnnotationBootstrap;
 use LinFly\Annotation\Interfaces\IAnnotationHandle;
 use LinFly\Annotation\Route\Controller;
 use LinFly\Annotation\Route\Middleware;
 use LinFly\Annotation\Route\Route;
-use LinFly\Annotation\Validate\Validate;
 use LinFly\Annotation\Validate\ValidateMiddleware;
 use Webman\Route as WebManRoute;
 use Webman\Route\Route as RouteObject;
@@ -32,12 +32,6 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
      * @var array
      */
     protected static array $middlewares = [];
-
-    /**
-     * 验证器
-     * @var array
-     */
-    protected static array $validates = [];
 
     /**
      * 保存的路由
@@ -88,12 +82,6 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
                     'except' => $parameters['except'],
                 ];
                 break;
-
-            // 验证器注解
-            case Validate::class:
-                // 转发到验证器注解处理
-                ValidateAnnotationHandle::handle($item);
-                break;
         }
     }
 
@@ -121,12 +109,6 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
                 $middlewares = static::$middlewares[$className . ':' . $method] ??= [];
                 static::$middlewares[$className . ':' . $method] = array_merge($middlewares, (array)$parameters['middlewares']);
                 break;
-
-            // 验证器注解
-            case Validate::class:
-                // 转发到验证器注解处理
-                ValidateAnnotationHandle::handle($item);
-                break;
         }
     }
 
@@ -138,11 +120,12 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
      */
     public static function createRoute(bool $isClear = true)
     {
-        $useDefaultMethod = config('plugin.linfly.annotation.annotation.route.use_default_method', true);
+        $useDefaultMethod = AnnotationBootstrap::$config['route']['use_default_method'] ?? true;
 
         foreach (self::$routes as $item) {
             $parameters = $item['parameters'];
 
+            // 未指定path参数且开启默认方法路由, 则使用方法名作为路由
             if (!isset($item['arguments']['path']) && $useDefaultMethod) {
                 $parameters['path'] = $item['method'];
             }
@@ -157,10 +140,16 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
             foreach (self::$controllers[$item['class']] ?? [['prefix' => '']] as $controller) {
                 // 控制器注解的path参数
                 $controllerPath = trim($controller['prefix'] ?? '', '/');
-                // 路由地址
-                $path = ($controllerPath ? '/' . $controllerPath : '') . ($parameters['path'] ? '/' . $parameters['path'] : '');
+                // 路由注解的path参数
+                $routePath = $parameters['path'];
+
+                // 控制器注解的path参数不为空时，拼接 "/" 路径分隔符，如果path参数以 "[/" (可变参数) 开头，则不拼接
+                $controllerPath = $controllerPath ? (str_starts_with($controllerPath, '[/') ? '' : '/') . $controllerPath : '';
+                // 路由注解的path参数不为空时，拼接 "/" 路径分隔符，如果path参数以 "[/" (可变参数) 开头，则不拼接
+                $routePath = $routePath ? (str_starts_with($routePath, '[/') ? '' : '/') . $routePath : '';
+
                 // 添加路由
-                self::addRoute($path, $item);
+                self::addRoute($controllerPath . $routePath, $item);
             }
         }
 
