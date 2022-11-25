@@ -91,23 +91,25 @@ use LinFly\Annotation\Route\Middleware;
 use LinFly\Annotation\Route\Route;
 /**
  * @Controller(prefix="/api")
+ * 
+ * 
+ * 注解中间件 需要和注解路由一起使用
+ * @param string|array $middlewares 路由中间件 支持多个中间件
+ * @param array $only 指定需要走中间件的方法, 不指定则全部走中间件, 与except互斥 只支持在控制器上使用
+ * @param array $except 指定不需要走中间件的方法, 不指定则全部走中间件, 与only互斥 只支持在控制器上使用
+ * 
+ * @Middleware(middlewares=AuthMiddleware::class, only={"get"})
  */
+// PHP8注解方式
+#[Middleware(middlewares=AuthMiddleware::class, only: ['get'])]
 class ApiController
 {
     /**
-     * 注解中间件 需要和注解路由一起使用
-     * @param string|array $middlewares 路由中间件 支持多个中间件
-     * @param array $only 指定需要走中间件的方法, 不指定则全部走中间件, 与except互斥
-     * @param array $except 指定不需要走中间件的方法, 不指定则全部走中间件, 与only互斥
-     * 
      * @Route(path="get", methods="get")
-     * 
-     * @Middleware(middlewares=AuthMiddleware::class, only={"get"})
-     * @Middleware(middlewares={AuthMiddleware::class, TokenCheckMiddleware::class})
+     * @Middleware(middlewares={TokenCheckMiddleware::class})
      */
      // PHP8注解方式
-     #[Middleware(middlewares=AuthMiddleware::class, only: ['get'])]
-     #[Middleware(middlewares=[AuthMiddleware::class, TokenCheckMiddleware::class])]
+     #[Middleware(middlewares=[TokenCheckMiddleware::class])]
      public function get()
      {
          return 'get';
