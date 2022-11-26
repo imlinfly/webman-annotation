@@ -13,6 +13,7 @@ namespace LinFly\Annotation\Util;
 use Closure;
 use FilesystemIterator;
 use Generator;
+use LinFly\Annotation\Bootstrap\AnnotationBootstrap;
 use SplFileInfo;
 
 abstract class AnnotationUtil
@@ -88,31 +89,12 @@ abstract class AnnotationUtil
     }
 
     /**
-     * 数组转字符串
-     * @access public
-     * @param array|string $separator 分隔符
-     * @param array|null $array 数组
-     * @param bool $removeNullValue 是否移除空值
-     * @return string
+     * 校验一个路径是否在允许的路径内
+     * @param string $pathname
+     * @return bool
      */
-    public static function implode(array|string $separator = '', ?array $array = null, bool $removeNullValue = true): string
+    public static function isInAllowedPath(string $pathname): bool
     {
-        if (is_array($separator)) {
-            $array = $separator;
-            $separator = '';
-        }
-
-        $result = '';
-
-        foreach ($array as $value) {
-            // 移除空值
-            if ($removeNullValue && empty($value)) {
-                continue;
-            }
-
-            $result .= $value . $separator;
-        }
-
-        return rtrim($result, $separator);
+        return (bool)preg_match(AnnotationBootstrap::$config['include_regex_paths'], $pathname);
     }
 }

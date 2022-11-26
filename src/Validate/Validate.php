@@ -16,7 +16,7 @@ use LinFly\Annotation\AbstractAnnotation;
 
 /**
  * @Annotation
- * @Target({"METHOD"})
+ * @Target({"CLASS", "METHOD"})
  */
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD | \Attribute::IS_REPEATABLE)]
 class Validate extends AbstractAnnotation

@@ -15,6 +15,7 @@ use LinFly\Annotation\Handle\ValidateAnnotationHandle;
 use LinFly\Annotation\Route\Controller;
 use LinFly\Annotation\Route\Middleware;
 use LinFly\Annotation\Route\Route;
+use LinFly\Annotation\Util\AnnotationUtil;
 use LinFly\Annotation\Validate\Validate;
 use ReflectionException;
 use Webman\Bootstrap;
@@ -51,28 +52,34 @@ class AnnotationBootstrap implements Bootstrap
      */
     public static function start($worker)
     {
+        // 初始化配置
+        self::initConfig();
+
         // 跳过忽略的进程
         if (!$worker || self::isIgnoreProcess(self::$workerName = $worker->name)) {
             return;
         }
 
-        // 获取配置
-        self::$config = config('plugin.linfly.annotation.annotation', []);
-        $config = self::$config = array_merge(self::$defaultConfig, self::$config);
-
+        // 注册注解处理类
         self::createAnnotationHandle();
 
+        echo '[' . self::$workerName . '] Start scan annotations...' . PHP_EOL;
+        $time = microtime(true);
+
         // 注解扫描
-        $generator = Annotation::scan($config['include_paths'], $config['exclude_paths']);
+        $generator = Annotation::scan(self::$config['include_paths'], self::$config['exclude_paths']);
         // 解析注解
         Annotation::parseAnnotations($generator);
+
+        $time = round(microtime(true) - $time, 2);
+        echo '[' . self::$workerName . '] Scan annotations completed, time: ' . $time . 's' . PHP_EOL;
     }
 
     /**
      * 设置注解处理回调
      * @return void
      */
-    protected static function createAnnotationHandle()
+    protected static function createAnnotationHandle(): void
     {
         // 控制器注解
         Annotation::addHandle(Controller::class, RouteAnnotationHandle::class);
@@ -82,6 +89,27 @@ class AnnotationBootstrap implements Bootstrap
         Annotation::addHandle(Middleware::class, RouteAnnotationHandle::class);
         // 验证器注解
         Annotation::addHandle(Validate::class, ValidateAnnotationHandle::class);
+    }
+
+    /**
+     * 初始化配置
+     * @return array
+     */
+    protected static function initConfig(): array
+    {
+        // 获取配置
+        self::$config = config('plugin.linfly.annotation.annotation', []);
+        self::$config = array_merge(self::$defaultConfig, self::$config);
+
+        // include_paths 转正则表达式
+        $regex = '';
+        foreach (self::$config['include_paths'] as $path) {
+            $path = AnnotationUtil::basePath(AnnotationUtil::replaceSeparator($path));
+            $regex .= preg_quote($path) . '|';
+        }
+        self::$config['include_regex_paths'] = '/^(' . rtrim($regex, '|') . ')/';
+
+        return self::$config;
     }
 
     /**

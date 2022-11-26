@@ -1,4 +1,5 @@
 <?php
+
 namespace Linfly\Annotation;
 
 class Install
@@ -8,9 +9,9 @@ class Install
     /**
      * @var array
      */
-    protected static $pathRelation = array (
-  'config/plugin/linfly/annotation' => 'config/plugin/linfly/annotation',
-);
+    protected static $pathRelation = array(
+        'config/plugin/linfly/annotation' => 'config/plugin/linfly/annotation',
+    );
 
     /**
      * Install
@@ -18,6 +19,14 @@ class Install
      */
     public static function install()
     {
+        // 删除旧的文件
+        foreach (['middleware.php', 'route.php'] as $filename) {
+            $pathname = base_path('config/plugin/linfly/annotation/' . $filename);
+            if (is_file($pathname)) {
+                unlink($pathname);
+            }
+        }
+
         static::installByRelation();
     }
 
@@ -38,13 +47,13 @@ class Install
     {
         foreach (static::$pathRelation as $source => $dest) {
             if ($pos = strrpos($dest, '/')) {
-                $parent_dir = base_path().'/'.substr($dest, 0, $pos);
+                $parent_dir = base_path() . '/' . substr($dest, 0, $pos);
                 if (!is_dir($parent_dir)) {
                     mkdir($parent_dir, 0777, true);
                 }
             }
             //symlink(__DIR__ . "/$source", base_path()."/$dest");
-            copy_dir(__DIR__ . "/$source", base_path()."/$dest");
+            copy_dir(__DIR__ . "/$source", base_path() . "/$dest");
             echo "Create $dest
 ";
         }
@@ -57,7 +66,7 @@ class Install
     public static function uninstallByRelation()
     {
         foreach (static::$pathRelation as $source => $dest) {
-            $path = base_path()."/$dest";
+            $path = base_path() . "/$dest";
             if (!is_dir($path) && !is_file($path)) {
                 continue;
             }
@@ -70,5 +79,5 @@ class Install
             remove_dir($path);
         }
     }
-    
+
 }

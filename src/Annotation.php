@@ -20,6 +20,7 @@ use ReflectionProperty;
 use ReflectionAttribute;
 use ReflectionException;
 use ReflectionParameter;
+use LinFly\Annotation\Annotation\Inherit;
 use LinFly\Annotation\Util\AnnotationUtil;
 use Doctrine\Common\Annotations\AnnotationReader;
 use LinFly\Annotation\Interfaces\IAnnotationItem;
@@ -204,7 +205,7 @@ abstract class Annotation
 
         $reflection = is_string($className) ? new ReflectionClass($className) : $className;
 
-        $annotations = self::cache($reflection->getName(), 'class', function () use ($reflection) {
+        $annotations = self::cache($reflection->getName(), 'class', function () use ($className, $reflection) {
             // 扫描PHP8原生注解
             $attributes = $reflection->getAttributes();
             // 通过注释解析为注解
@@ -214,7 +215,22 @@ abstract class Annotation
                 'type' => 'class',
                 // 类名
                 'class' => $reflection->name,
-            ]);
+            ], function (array &$annotations) use ($reflection) {
+                // 获取父类
+                $parentClass = $reflection->getParentClass();
+                // 没有父类 或者 父类不在扫描范围内则跳过
+                if (
+                    false === $parentClass ||
+                    !AnnotationUtil::isInAllowedPath((string)$parentClass->getFileName())
+                ) {
+                    return;
+                }
+
+                // 获取父类注解列表
+                $parentAnnotations = self::getClassAnnotations($parentClass);
+                // 处理注解继承
+                self::handleAnnotationInherit($annotations, $parentAnnotations, ['class' => $reflection->name]);
+            });
         });
 
         return self::filterScanAnnotations($annotations, $scanAnnotations);
@@ -248,7 +264,24 @@ abstract class Annotation
                 'class' => $reflectionMethod->class,
                 // 方法名
                 'method' => $reflectionMethod->name,
-            ]);
+            ], function (array &$annotations) use ($reflectionMethod) {
+                try {
+                    // 父类不在扫描范围内则跳过
+                    if (!AnnotationUtil::isInAllowedPath((string)$reflectionMethod->getFileName())) {
+                        return;
+                    }
+                    // 获取方法原型
+                    $parentMethod = $reflectionMethod->getPrototype();
+                    // 获取方法原型注解列表
+                    $parentAnnotations = self::getMethodAnnotations($parentMethod);
+                    // 处理注解继承
+                    self::handleAnnotationInherit($annotations, $parentAnnotations, [
+                        'class' => $reflectionMethod->class,
+                    ]);
+                } catch (ReflectionException) {
+                    return;
+                }
+            });
         });
 
         return self::filterScanAnnotations($annotations, $scanAnnotations);
@@ -284,7 +317,28 @@ abstract class Annotation
                 'class' => $reflectionProperty->class,
                 // 属性名
                 'property' => $reflectionProperty->name,
-            ]);
+            ], function (array &$annotations) use ($reflectionProperty) {
+                try {
+                    $parentClass = $reflectionProperty->getDeclaringClass()->getParentClass();
+                    // 没有父类 或者 父类不在扫描范围内则跳过
+                    if (
+                        false === $parentClass ||
+                        !AnnotationUtil::isInAllowedPath((string)$parentClass->getFileName())
+                    ) {
+                        return;
+                    }
+                    // 获取父类的当前属性
+                    $parentProperty = $parentClass->getProperty($reflectionProperty->name);
+                    // 获取方法原型注解列表
+                    $parentAnnotations = self::getPropertyAnnotations($parentClass, $parentProperty);
+                    // 处理注解继承
+                    self::handleAnnotationInherit($annotations, $parentAnnotations, [
+                        'class' => $parentClass->name,
+                    ]);
+                } catch (ReflectionException) {
+                    return;
+                }
+            });
         });
 
         return self::filterScanAnnotations($annotations, $scanAnnotations);
@@ -299,7 +353,7 @@ abstract class Annotation
      * @return array
      * @throws ReflectionException
      */
-    public static function getMethodParameterAnnotations(string|ReflectionMethod $methodName, string|ReflectionParameter $parameterName, array|string $scanAnnotations = [])
+    public static function getMethodParameterAnnotations(string|ReflectionMethod $methodName, string|ReflectionParameter $parameterName, array|string $scanAnnotations = []): array
     {
         $scanAnnotations = (array)$scanAnnotations;
         $reflectionMethod = is_string($methodName) ? new ReflectionMethod($methodName) : $methodName;
@@ -338,9 +392,10 @@ abstract class Annotation
      * @access public
      * @param array $attributes
      * @param array $parameters
+     * @param Closure|null $inherit
      * @return array
      */
-    protected static function buildScanAnnotationItems(array $attributes, array $parameters = [])
+    protected static function buildScanAnnotationItems(array $attributes, array $parameters = [], \Closure $inherit = null): array
     {
         $annotations = [];
 
@@ -370,7 +425,84 @@ abstract class Annotation
             unset($annotation);
         }
 
+        if ($inherit instanceof \Closure) {
+            $inherit($annotations);
+        }
+
         return $annotations;
+    }
+
+    /**
+     * 处理注解继承
+     * @param array $annotations
+     * @param array $parentAnnotations
+     * @param array $replaces
+     * @return void
+     */
+    protected static function handleAnnotationInherit(array &$annotations, array $parentAnnotations, array $replaces = []): void
+    {
+        // 继承的注解参数
+        $inherit = $annotations[Inherit::class][0]['parameters'] ?? false;
+
+        // 子类使用了继承，设定不继承父类注解
+        if ($inherit && $inherit['only'] === false) {
+            return;
+        }
+
+        // 父类是否使用继承，父类使用继承，所有子类则都继承
+        $parameter = $parentInherit = $parentAnnotations[Inherit::class][0]['parameters'] ?? false;
+
+        // 子类父类都没用继承
+        if (!$inherit && !$parentInherit) {
+            return;
+        }
+        // 父类不使用继承
+        if ($parentInherit && $parentInherit['only'] === false) {
+            return;
+        }
+        // 父类使用了继承且子类也使用了继承，则覆盖父类注解参数
+        if ($parentInherit && $inherit) {
+            $parameter = $inherit;
+        }
+
+        foreach ($parentAnnotations as $name => $annotation) {
+            if ($name === Inherit::class) {
+                // 父类使用了继承，子类没使用继承，子类则继承父类的Inherit注解
+                false === $inherit && $annotations[$name] = $annotation;
+                continue;
+            }
+
+            if ($replaces) {
+                $annotation = array_map(fn($item) => array_merge($item, $replaces), $annotation);
+            }
+
+            // 只继承父类的指定的注解
+            if ($parameter['only']) {
+                foreach ($parameter['only'] as $onlyClass) {
+                    if ($onlyClass === $name) {
+                        // 合并或者覆盖注解
+                        $annotations[$onlyClass] = $parameter['merge'] ? array_merge(
+                            $annotations[$onlyClass] ?? [], $annotation
+                        ) : $annotation;
+                    }
+                }
+            } // 只继承父类跟except参数不匹配的注解
+            else if ($parameter['except']) {
+                foreach ($parameter['except'] as $exceptClass) {
+                    if ($exceptClass !== $name) {
+                        // 合并或者覆盖注解
+                        $annotations[$name] = $parameter['merge'] ? array_merge(
+                            $annotations[$name] ?? [], $annotation
+                        ) : $annotation;
+                    }
+                }
+            } else {
+                // 合并或者覆盖所有注解
+                $annotations[$name] = $parameter['merge'] ? array_merge(
+                    $annotations[$name] ?? [], $annotation
+                ) : $annotation;
+            }
+        }
     }
 
     /**

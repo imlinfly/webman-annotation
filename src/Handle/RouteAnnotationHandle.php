@@ -169,7 +169,6 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
     protected static function addRoute(string $path, array $item)
     {
         $parameters = $item['parameters'];
-
         // 添加路由
         $route = WebManRoute::add($parameters['methods'], ($path ?: '/'), [$item['class'], $item['method']]);
         // 路由参数
