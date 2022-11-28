@@ -102,12 +102,8 @@ class AnnotationBootstrap implements Bootstrap
         self::$config = array_merge(self::$defaultConfig, self::$config);
 
         // include_paths 转正则表达式
-        $regex = '';
-        foreach (self::$config['include_paths'] as $path) {
-            $path = AnnotationUtil::basePath(AnnotationUtil::replaceSeparator($path));
-            $regex .= preg_quote($path) . '|';
-        }
-        self::$config['include_regex_paths'] = '/^(' . rtrim($regex, '|') . ')/';
+        $regular = AnnotationUtil::excludeToRegular(self::$config['include_paths']);
+        self::$config['include_regex_paths'] = $regular ? '/^(' . $regular . ')/' : '';
 
         return self::$config;
     }

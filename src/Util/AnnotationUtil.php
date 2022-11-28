@@ -29,7 +29,7 @@ abstract class AnnotationUtil
         $regular = '';
 
         foreach ($exclude as $value) {
-            // 绝对路径开始的不拼接root路径
+            // 绝对路径开始的不拼接base路径
             if (!str_starts_with($value, '/')) {
                 $value = self::basePath($value);
             }
@@ -95,6 +95,9 @@ abstract class AnnotationUtil
      */
     public static function isInAllowedPath(string $pathname): bool
     {
+        if (empty(AnnotationBootstrap::$config['include_paths'])) {
+            return true;
+        }
         return (bool)preg_match(AnnotationBootstrap::$config['include_regex_paths'], $pathname);
     }
 }

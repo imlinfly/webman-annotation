@@ -61,11 +61,24 @@ abstract class Annotation
 
         foreach ($include as $path) {
             // 扫描绝对路径
-            $path = AnnotationUtil::basePath(AnnotationUtil::replaceSeparator($path));
-            // 遍历获取文件
-            yield from AnnotationUtil::findDirectory($path, function (SplFileInfo $item) use ($excludeRegular) {
+            $path = AnnotationUtil::basePath($path);
+            // 过滤排除的路径
+            $filter = function (SplFileInfo $item) use ($excludeRegular) {
                 return $item->getExtension() === 'php' && !($excludeRegular && preg_match($excludeRegular, $item->getPathname()));
-            });
+            };
+            // 通配符查找
+            if (str_contains($path, '*')) {
+                $files = glob($path);
+                foreach ($files as $file) {
+                    if (is_file($file) && $filter($item = new SplFileInfo($file))) {
+                        yield $item;
+                    } else if (is_dir($file)) {
+                        yield from AnnotationUtil::findDirectory($file, $filter);
+                    }
+                }
+            } else { // 按目录查找
+                yield from AnnotationUtil::findDirectory($path, $filter);
+            }
         }
     }
 
