@@ -11,6 +11,7 @@ declare (strict_types=1);
 namespace LinFly\Annotation;
 
 use LinFly\Annotation\Interfaces\IAnnotationItem;
+use LinFly\Annotation\Route\GetRoute;
 
 abstract class AbstractAnnotation implements IAnnotationItem
 {
@@ -25,6 +26,12 @@ abstract class AbstractAnnotation implements IAnnotationItem
      * @var array
      */
     protected array $_parameters = [];
+
+    /**
+     * 额外的参数值 [key => value]
+     * @var array
+     */
+    protected array $_extraValues = [];
 
     /**
      * 参数默认值
@@ -54,7 +61,7 @@ abstract class AbstractAnnotation implements IAnnotationItem
             foreach ($args[0]['value'] as $key => $value) {
                 $data[$this->_parameters[$key]] = $value;
             }
-            return $this->_arguments = $data;
+            return $this->_arguments = $data + $this->_extraValues;
         }
 
         // 注释解析 指定参数传参
@@ -64,7 +71,7 @@ abstract class AbstractAnnotation implements IAnnotationItem
             unset($args['value']);
         }
         if (is_array($args)) {
-            $this->_arguments = $args;
+            $this->_arguments = $args + $this->_extraValues;
         }
 
         return $this->_arguments;
@@ -75,7 +82,7 @@ abstract class AbstractAnnotation implements IAnnotationItem
      * @access public
      * @return void
      */
-    protected function paresParameters()
+    protected function paresParameters(): void
     {
         // 使用反射获取构造方法参数
         $parameters = (new \ReflectionObject($this))->getConstructor()->getParameters();
@@ -105,7 +112,7 @@ abstract class AbstractAnnotation implements IAnnotationItem
      */
     public function setArguments(array $args): static
     {
-        $this->_arguments = [];
+        $this->_arguments = $this->_extraValues;
 
         // 按序传参，不指定参数名
         if (isset($args[0])) {
@@ -129,7 +136,7 @@ abstract class AbstractAnnotation implements IAnnotationItem
      */
     public function getParameters(): array
     {
-        $params = [];
+        $params = $this->_extraValues;
 
         foreach ($this->_parameters as $value) {
             $params[$value] = $this->_arguments[$value] ?? $this->_defaultValues[$value] ?? null;

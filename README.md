@@ -6,6 +6,14 @@
 >
 > 支持注释注解 和 PHP8注解方式
 
+### 目前支持的功能
+
+* 路由注解
+* 中间件注解
+* 验证器注解
+* 自定义注解
+* 注解继承 `v1.0.5` 版本开始支持
+
 ## 安装
 
 ```shell
@@ -22,7 +30,7 @@ composer require linfly/annotation
 return [
     // 注解扫描路径
     'include_paths' => [
-        // 应用目录
+        // 应用目录 支持通配符: * , 例如: app/*, app/*.php
         'app',
     ],
     // 扫描排除的路径 支持通配符: *
@@ -50,6 +58,14 @@ return [
 ## 使用
 
 ### 注解路由
+
+> 支持的注解方式：
+> `@Route` `@GetRoute` `@PostRoute` `@PutRoute` `@DeleteRoute`
+> `@PatchRoute` `@HeadRoute` `@OptionsRoute`
+>
+> 除`@Route`注解外，其他注解都是v1.0.5版本开始支持
+>
+> 除`@Route`注解外，其他注解都是`@Route`的别名，使用方式一致
 
 ```php
 use LinFly\Annotation\Route\Controller;
@@ -155,6 +171,91 @@ class IndexController
     public function index(Request $request)
     {
         return response('hello webman');
+    }
+}
+```
+
+## 注解继承
+
+> 注解继承可以让你的注解更加简洁，减少重复代码
+
+### 参数说明
+
+```php
+/**
+ * 指定需要继承的方法, 不指定则全部继承, 与except互斥; 如果为false, 则不继承任何注解
+ * @param array|false $only
+ * 指定不需要继承的方法, 不指定则全部继承, 与only互斥
+ * @param array $except
+ * 参数为true时, 则合并父类的注解, 参数为false时, 则覆盖父类的注解
+ * @param bool $merge
+ */
+public function __construct(public array|false $only = [], public array $except = [], public bool $merge = true);
+```
+
+### 使用例子
+
+父类：UserAuthController.php
+
+```php
+<?php
+
+namespace app\controller;
+
+use app\middleware\UserAuthMiddleware;
+use app\validate\UserValidate;
+use LinFly\Annotation\Annotation\Inherit;
+use LinFly\Annotation\Route\Controller;
+use LinFly\Annotation\Route\Middleware;
+use LinFly\Annotation\Route\Route;
+use LinFly\Annotation\Validate\Validate;
+use support\Request;
+
+#[
+    // 用户授权中间件
+    Middleware(middlewares: UserAuthMiddleware::class),
+    Validate(validate: UserValidate::class),
+    // 让所有子类都继承父类的注解（父类使用了继承注解, 子类可选使用继承注解）
+    Inherit,
+    // 让所有子类只继承父类的中间件注解
+    // Inherit(only: [Middleware::class]),
+]
+abstract class UserAuthController
+{
+
+}
+```
+
+子类：TestController.php
+
+```php
+<?php
+
+namespace app\controller;
+
+use LinFly\Annotation\Route\Controller;
+use LinFly\Annotation\Route\GetRoute;
+
+#[
+    Controller(prefix: 'user'),
+    // 不继承父类的注解
+    // Inherit(only: false),
+    // 继承父类的所有注解
+    // Inherit(only: []),
+    // 只继承父类的中间件注解
+    // Inherit(only: [Middleware::class]),
+    // 不继承父类的验证器注解
+    // Inherit(except: [Validate::class]),
+]
+class TestController extends UserAuthController
+{
+    #[GetRoute]
+    public function info()
+    {
+        return json([
+            'user_id' => 1,
+            'username' => 'test',
+        ]);
     }
 }
 ```
@@ -346,6 +447,14 @@ return [
 ```
 
 ## 更新日志
+
+### v1.0.5
+
+1. 修正注解路由请求方法大小写问题。
+2. 新增注解继承功能。
+3. 新增 `@GetRoute` `@PostRoute` 等注解路由类。
+4. 新增 `include_paths` 注解扫描路径参数支持通配符。
+5. 新增支持扫描单个文件中写入多个类的文件。
 
 ### v1.0.4
 

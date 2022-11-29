@@ -50,11 +50,17 @@ abstract class AnnotationUtil
      */
     public static function findDirectory(string $path, Closure $filter): Generator
     {
-        $iterator = new FilesystemIterator($path);
+        if (str_contains($path, '*')) { // 通配符查找
+            $iterator = glob($path);
+        } else { // 按实际路径查找
+            $iterator = new FilesystemIterator($path);
+        }
 
         /** @var SplFileInfo $item */
         foreach ($iterator as $item) {
-
+            if (!$item instanceof SplFileInfo) {
+                $item = new SplFileInfo($item);
+            }
             if ($item->isDir() && !$item->isLink()) {
                 yield from self::findDirectory($item->getPathname(), $filter);
             } else {
@@ -99,5 +105,56 @@ abstract class AnnotationUtil
             return true;
         }
         return (bool)preg_match(AnnotationBootstrap::$config['include_regex_paths'], $pathname);
+    }
+
+    /**
+     * 获取文件中的所有类
+     * @param string $file
+     * @return array
+     */
+    public static function getAllClassesInFile(string $file)
+    {
+        $classes = [];
+        $tokens = token_get_all(file_get_contents($file));
+        $count = count($tokens);
+        // 兼容php7和php8
+        $tNamespace = version_compare(PHP_VERSION, '8.0.0', '>=') ? T_NAME_QUALIFIED : T_STRING;
+
+        $namespace = '';
+        for ($i = 2; $i < $count; $i++) {
+            // 扫描到命名空间
+            if ($tokens[$i - 2][0] === T_NAMESPACE && $tokens[$i - 1][0] === T_WHITESPACE) {
+                // 清空命名空间
+                $namespace = '';
+                // 不是命名空间跳过
+                if ($tokens[$i][0] !== $tNamespace) {
+                    continue;
+                }
+                // 获取命名空间
+                $tempNamespace = $tokens[$i][1] ?? '';
+                for ($j = $i + 1; $j < $count; $j++) {
+                    // 如果是分号或者大括号，说明命名空间结束
+                    if ($tokens[$j] === '{' || $tokens[$j] === ';') {
+                        break;
+                    }
+                    if ($tokens[$j][0] === $tNamespace) {
+                        // 命名空间拼接
+                        $tempNamespace .= '\\' . $tokens[$j][1];
+                    }
+                }
+                $namespace = $tempNamespace;
+                // 扫描到类
+            } else if ($tokens[$i - 2][0] === T_CLASS && $tokens[$i - 1][0] === T_WHITESPACE && $tokens[$i][0] === T_STRING) {
+                // 拼接命名空间和类名
+                $classes[] = ($namespace ? $namespace . '\\' : '') . $tokens[$i][1];
+            }
+        }
+
+        return $classes;
+    }
+
+    public static function output(string $message)
+    {
+        fwrite(STDOUT, $message . PHP_EOL);
     }
 }

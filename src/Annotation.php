@@ -53,32 +53,19 @@ abstract class Annotation
      * @param array $exclude 排除的路径
      * @return Generator
      */
-    public static function scan(array $include, array $exclude = [])
+    public static function scan(array $include, array $exclude = []): Generator
     {
         // 排除路径转正则表达式
-        $regular = AnnotationUtil::excludeToRegular($exclude);
-        $excludeRegular = $regular ? '/^(' . $regular . ')/' : '';
+        $regex = AnnotationUtil::excludeToRegular($exclude);
+        $excludeRegex = $regex ? '/^(' . $regex . ')/' : '';
 
         foreach ($include as $path) {
             // 扫描绝对路径
             $path = AnnotationUtil::basePath($path);
-            // 过滤排除的路径
-            $filter = function (SplFileInfo $item) use ($excludeRegular) {
-                return $item->getExtension() === 'php' && !($excludeRegular && preg_match($excludeRegular, $item->getPathname()));
-            };
-            // 通配符查找
-            if (str_contains($path, '*')) {
-                $files = glob($path);
-                foreach ($files as $file) {
-                    if (is_file($file) && $filter($item = new SplFileInfo($file))) {
-                        yield $item;
-                    } else if (is_dir($file)) {
-                        yield from AnnotationUtil::findDirectory($file, $filter);
-                    }
-                }
-            } else { // 按目录查找
-                yield from AnnotationUtil::findDirectory($path, $filter);
-            }
+            // 扫描目录
+            yield from AnnotationUtil::findDirectory($path, function (SplFileInfo $item) use ($excludeRegex) {
+                return $item->getExtension() === 'php' && !($excludeRegex && preg_match($excludeRegex, $item->getPathname()));
+            });
         }
     }
 
@@ -95,30 +82,35 @@ abstract class Annotation
         foreach ($generator as $item) {
             // 获取路径中的类名地址
             $pathname = $item->getPathname();
-            $className = substr($pathname, strlen(AnnotationUtil::basePath()) + 1, -4);
-            $className = str_replace('/', '\\', $className);
+            // 获取文件中的所有类
+            $classes = AnnotationUtil::getAllClassesInFile($pathname);
 
-            try {
-                if (!class_exists($className)) {
-                    continue;
-                }
-                // 反射类
-                $reflection = new ReflectionClass($className);
-            } catch (Throwable) {
-                continue;
+            // 如果文件中有多个类就引入文件，因为命名不规范 Composer 无法自动加载会导致反射失败
+            if (isset($classes[1])) {
+                require_once $pathname;
             }
 
-            // 解析类的注解
-            foreach (self::yieldParseClassAnnotations($reflection) as $annotations) {
-                // 遍历注解结果集
-                foreach ($annotations as $item) {
-                    // 注解类
-                    $annotationClass = $item['annotation'];
-                    // 调用注解处理类
-                    if (isset(self::$handle[$annotationClass])) {
-                        /** @var IAnnotationHandle $handle */
-                        foreach (self::$handle[$annotationClass] as $handle) {
-                            [$handle, 'handle']($item, $className);
+            foreach ($classes as $class) {
+                try {
+                    // 反射类
+                    $reflection = new ReflectionClass($class);
+                } catch (Throwable $e) {
+                    AnnotationUtil::output('[AnnotationScan] ERROR: ' . $e->getMessage());
+                    continue;
+                }
+
+                // 解析类的注解
+                foreach (self::yieldParseClassAnnotations($reflection) as $annotations) {
+                    // 遍历注解结果集
+                    foreach ($annotations as $item) {
+                        // 注解类
+                        $annotationClass = $item['annotation'];
+                        // 调用注解处理类
+                        if (isset(self::$handle[$annotationClass])) {
+                            /** @var IAnnotationHandle $handle */
+                            foreach (self::$handle[$annotationClass] as $handle) {
+                                [$handle, 'handle']($item, $class);
+                            }
                         }
                     }
                 }
@@ -473,8 +465,9 @@ abstract class Annotation
         if ($parentInherit && $parentInherit['only'] === false) {
             return;
         }
-        // 父类使用了继承且子类也使用了继承，则覆盖父类注解参数
-        if ($parentInherit && $inherit) {
+
+        // 子类使用了继承或者父类没使用继承，则设定继承父类注解
+        if (!$parentInherit || $inherit) {
             $parameter = $inherit;
         }
 
@@ -485,36 +478,22 @@ abstract class Annotation
                 continue;
             }
 
+            // 替换继承的注解参数
             if ($replaces) {
                 $annotation = array_map(fn($item) => array_merge($item, $replaces), $annotation);
             }
 
             // 只继承父类的指定的注解
-            if ($parameter['only']) {
-                foreach ($parameter['only'] as $onlyClass) {
-                    if ($onlyClass === $name) {
-                        // 合并或者覆盖注解
-                        $annotations[$onlyClass] = $parameter['merge'] ? array_merge(
-                            $annotations[$onlyClass] ?? [], $annotation
-                        ) : $annotation;
-                    }
-                }
+            if ($parameter['only'] && !in_array($name, $parameter['only'])) {
+                continue;
             } // 只继承父类跟except参数不匹配的注解
-            else if ($parameter['except']) {
-                foreach ($parameter['except'] as $exceptClass) {
-                    if ($exceptClass !== $name) {
-                        // 合并或者覆盖注解
-                        $annotations[$name] = $parameter['merge'] ? array_merge(
-                            $annotations[$name] ?? [], $annotation
-                        ) : $annotation;
-                    }
-                }
-            } else {
-                // 合并或者覆盖所有注解
-                $annotations[$name] = $parameter['merge'] ? array_merge(
-                    $annotations[$name] ?? [], $annotation
-                ) : $annotation;
+            elseif ($parameter['except'] && in_array($name, $parameter['except'])) {
+                continue;
             }
+            // 合并或者覆盖所有注解
+            $annotations[$name] = $parameter['merge'] ? array_merge(
+                $annotation, $annotations[$name] ?? []
+            ) : $annotation;
         }
     }
 
@@ -524,9 +503,9 @@ abstract class Annotation
      * @param string $className
      * @param string $tag
      * @param array|Closure|null $data
-     * @return array|Closure|false|mixed
+     * @return mixed
      */
-    public static function cache(string $className, string $tag, array|Closure $data = null)
+    public static function cache(string $className, string $tag, array|Closure $data = null): mixed
     {
         if (is_null($data)) {
             return self::$annotations[$className][$tag] ?? false;
@@ -576,12 +555,19 @@ abstract class Annotation
 
     /**
      * 添加注解处理类
-     * @param string $annotationClass
+     * @param string|array $annotationClass
      * @param string $handleClass
      * @return array
      */
-    public static function addHandle(string $annotationClass, string $handleClass): array
+    public static function addHandle(string|array $annotationClass, string $handleClass): array
     {
+        if (is_array($annotationClass)) {
+            foreach ($annotationClass as $annotation) {
+                self::addHandle($annotation, $handleClass);
+            }
+            return self::$handle;
+        }
+
         self::$handle[$annotationClass] ??= [];
         self::$handle[$annotationClass][] = $handleClass;
         return self::$handle;

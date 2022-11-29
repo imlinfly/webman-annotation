@@ -22,8 +22,8 @@ use LinFly\Annotation\AbstractAnnotation;
 class Inherit extends AbstractAnnotation
 {
     /**
-     * @param array|false $only
-     * @param array $except
+     * @param array|false $only 指定需要继承的方法, 不指定则全部继承, 与except互斥; 如果为false, 则不继承任何注解
+     * @param array $except 指定不需要继承的方法, 不指定则全部继承, 与only互斥
      * @param bool $merge
      */
     public function __construct(public array|false $only = [], public array $except = [], public bool $merge = true)

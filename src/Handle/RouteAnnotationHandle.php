@@ -13,7 +13,13 @@ namespace LinFly\Annotation\Handle;
 use LinFly\Annotation\Bootstrap\AnnotationBootstrap;
 use LinFly\Annotation\Interfaces\IAnnotationHandle;
 use LinFly\Annotation\Route\Controller;
+use LinFly\Annotation\Route\GetRoute;
+use LinFly\Annotation\Route\HeadRoute;
 use LinFly\Annotation\Route\Middleware;
+use LinFly\Annotation\Route\OptionsRoute;
+use LinFly\Annotation\Route\PatchRoute;
+use LinFly\Annotation\Route\PostRoute;
+use LinFly\Annotation\Route\PutRoute;
 use LinFly\Annotation\Route\Route;
 use LinFly\Annotation\Validate\ValidateMiddleware;
 use Webman\Route as WebManRoute;
@@ -61,7 +67,7 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
      * @param string $className
      * @return void
      */
-    public static function handleClassAnnotation(array $item, string $className)
+    public static function handleClassAnnotation(array $item, string $className): void
     {
         $annotation = $item['annotation'];
         $parameters = $item['parameters'];
@@ -92,7 +98,7 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
      * @param string $className
      * @return void
      */
-    public static function handleMethodAnnotation(array $item, string $className)
+    public static function handleMethodAnnotation(array $item, string $className): void
     {
         $method = $item['method'];
         $annotation = $item['annotation'];
@@ -101,6 +107,12 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
         switch ($annotation) {
             // 路由注解
             case Route::class:
+            case GetRoute::class:
+            case PostRoute::class:
+            case HeadRoute::class:
+            case PatchRoute::class:
+            case OptionsRoute::class:
+            case PutRoute::class:
                 static::$routes[] = $item;
                 break;
 
@@ -118,7 +130,7 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
      * @param bool $isClear 是否清除路由
      * @return void
      */
-    public static function createRoute(bool $isClear = true)
+    public static function createRoute(bool $isClear = true): void
     {
         $useDefaultMethod = AnnotationBootstrap::$config['route']['use_default_method'] ?? true;
 
@@ -166,9 +178,12 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
      * @param array $item
      * @return void
      */
-    protected static function addRoute(string $path, array $item)
+    protected static function addRoute(string $path, array $item): void
     {
         $parameters = $item['parameters'];
+
+        // 路由请求方法转大写
+        $parameters['methods'] = array_map('strtoupper', (array)$parameters['methods']);
         // 添加路由
         $route = WebManRoute::add($parameters['methods'], ($path ?: '/'), [$item['class'], $item['method']]);
         // 路由参数
@@ -186,7 +201,7 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
      * @param string $method
      * @return void
      */
-    protected static function addMiddleware(RouteObject $route, string $class, string $method)
+    protected static function addMiddleware(RouteObject $route, string $class, string $method): void
     {
         // 类中间件
         $classMiddlewares = self::$middlewares[$class] ?? [];
@@ -196,10 +211,10 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
         // 添加类中间件
         foreach ($classMiddlewares as $item) {
             // 填写了only参数且不在only参数中则跳过
-            if ($item['only'] && !in_array($method, self::toLowerArray($item['only']))) {
+            if ($item['only'] && !in_array($method, $item['only'])) {
                 continue;
             } // 填写了except参数且在except参数中则跳过
-            else if ($item['except'] && in_array($method, self::toLowerArray($item['except']))) {
+            else if ($item['except'] && in_array($method, $item['except'])) {
                 continue;
             }
             $route->middleware($item['middlewares']);
@@ -214,17 +229,12 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
         }
     }
 
-    protected static function toLowerArray(array $data)
-    {
-        return array_map(fn($item) => strtolower($item), $data);
-    }
-
     /**
      * 资源回收
      * @access public
      * @return void
      */
-    protected static function recovery()
+    protected static function recovery(): void
     {
         // 清空控制器注解
         self::$controllers = [];
