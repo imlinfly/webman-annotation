@@ -155,6 +155,6 @@ abstract class AnnotationUtil
 
     public static function output(string $message)
     {
-        fwrite(STDOUT, $message . PHP_EOL);
+        echo $message . PHP_EOL;
     }
 }

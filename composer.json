@@ -4,7 +4,8 @@
   "license": "MIT",
   "description": "Webman plugin linfly/annotation",
   "require": {
-    "doctrine/annotations": "^1.13"
+    "doctrine/annotations": "^1.13",
+    "php": "^8.0"
   },
   "autoload": {
     "psr-4": {
