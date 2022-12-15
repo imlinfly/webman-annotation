@@ -152,9 +152,4 @@ abstract class AnnotationUtil
 
         return $classes;
     }
-
-    public static function output(string $message)
-    {
-        echo $message . PHP_EOL;
-    }
 }
