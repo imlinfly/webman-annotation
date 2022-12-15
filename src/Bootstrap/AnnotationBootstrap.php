@@ -78,7 +78,7 @@ class AnnotationBootstrap implements Bootstrap
         // 注册注解处理类
         self::createAnnotationHandle();
 
-        AnnotationUtil::output('[Process:' . self::$workerName . '] Start scan annotations...');
+        echo '[Process:' . self::$workerName . '] Start scan annotations...';
         $time = microtime(true);
 
         // 注解扫描
@@ -87,7 +87,7 @@ class AnnotationBootstrap implements Bootstrap
         Annotation::parseAnnotations($generator);
 
         $time = round(microtime(true) - $time, 2);
-        AnnotationUtil::output('[Process:' . self::$workerName . '] Scan annotations completed, time: ' . $time . 's');
+        echo '[Process:' . self::$workerName . '] Scan annotations completed, time: ' . $time . 's';
     }
 
     /**

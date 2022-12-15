@@ -95,7 +95,7 @@ abstract class Annotation
                     // 反射类
                     $reflection = new ReflectionClass($class);
                 } catch (Throwable $e) {
-                    AnnotationUtil::output('[AnnotationScan] ERROR: ' . $e->getMessage());
+                    echo '[AnnotationScan] ERROR: ' . $e->getMessage();
                     continue;
                 }
 
