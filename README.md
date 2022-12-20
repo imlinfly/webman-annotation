@@ -13,6 +13,7 @@
 * 验证器注解
 * 自定义注解
 * 注解继承 `v1.0.5` 版本开始支持
+* 依赖注入 `v1.0.7` 版本开始支持
 
 ## 安装
 
@@ -260,6 +261,86 @@ class TestController extends UserAuthController
 }
 ```
 
+## 依赖注入
+
+### 配置
+
+修改`config/container.php`文件，修改后内容如下：
+
+```php
+$container = \LinFly\FacadeContainer::getInstance();
+$container->definition(config('dependence', []));
+return $container;
+```
+
+### 参数说明
+
+```php
+/**
+ * @param string|array $name 实例或者别名
+ * @param array $parameters 参数
+ */
+public function __construct(protected string $name = '', protected array $parameters = []);
+```
+
+### 使用例子
+
+需要注入的类：TestService.php
+
+```php
+<?php
+
+namespace app\service;
+
+use LinFly\Annotation\Annotation\Inject;
+
+class TestService
+{
+    public function test()
+    {
+        return true;
+    }
+}
+```
+
+调用类：TestController.php
+
+```php
+<?php
+
+namespace app\controller;
+
+use LinFly\Annotation\Annotation\Inject;
+use app\service\TestService;
+
+class TestController
+{
+    /**
+     * @Inject()
+     * 
+     * 可以使用var注解指定注入的类, 或者声明属性类型来指定注入的类
+     * 更推荐使用声明属性类型的方式，优先级高于var注解
+     * @var TestService
+     */
+    // PHP8注解方式
+    #[Inject]
+    protected TestService $testService;
+
+    public function test() {
+        var_dump($this->testService->test());
+        // true
+    }
+}
+```
+
+### 实验性功能
+
+#### 1. 循环依赖
+
+依赖注入支持循环依赖，即A依赖B，B依赖A，但是需要注意的是，依赖注入的类必须是单例模式，否则会报错。
+
+构造函数支持注入自身实例，注入自身的实例是单例实例，不会重复创建。
+
 ## 自定义注解类
 
 ### 第一步：创建注解类
@@ -447,6 +528,10 @@ return [
 ```
 
 ## 更新日志
+
+### v1.0.7 待发布
+
+1. 新增依赖注入功能
 
 ### v1.0.6
 

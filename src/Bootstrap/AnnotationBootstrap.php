@@ -10,6 +10,8 @@ declare (strict_types=1);
 
 namespace LinFly\Annotation\Bootstrap;
 
+use LinFly\Annotation\Handle\ContainerAnnotationHandle;
+use LinFly\Annotation\Handle\InjectAnnotationHandle;
 use LinFly\Annotation\Handle\RouteAnnotationHandle;
 use LinFly\Annotation\Handle\ValidateAnnotationHandle;
 use LinFly\Annotation\Route\Controller;
@@ -24,6 +26,7 @@ use LinFly\Annotation\Route\Route;
 use LinFly\Annotation\Util\AnnotationUtil;
 use LinFly\Annotation\Validate\Validate;
 use ReflectionException;
+use support\Container;
 use Webman\Bootstrap;
 use LinFly\Annotation\Annotation;
 
@@ -116,6 +119,19 @@ class AnnotationBootstrap implements Bootstrap
 
         // 验证器注解
         Annotation::addHandle(Validate::class, ValidateAnnotationHandle::class);
+
+        // 依赖注入注解
+        Annotation::addHandle(Annotation\Inject::class, InjectAnnotationHandle::class);
+
+        if (Container::instance() instanceof \LinFly\Container) {
+            // 绑定容器调用前的回调
+            Container::instance()->bindCallbackBeforeCall('*', [
+                InjectAnnotationHandle::class, 'bindCallbackBeforeCall'
+            ]);
+        }
+
+        // 容器实例命名注解
+        Annotation::addHandle(Annotation\Bean::class, ContainerAnnotationHandle::class);
     }
 
     /**
