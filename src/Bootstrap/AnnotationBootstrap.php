@@ -14,6 +14,7 @@ use LinFly\Annotation\Handle\ContainerAnnotationHandle;
 use LinFly\Annotation\Handle\InjectAnnotationHandle;
 use LinFly\Annotation\Handle\RouteAnnotationHandle;
 use LinFly\Annotation\Handle\ValidateAnnotationHandle;
+use LinFly\Annotation\Route\BindRoute;
 use LinFly\Annotation\Route\Controller;
 use LinFly\Annotation\Route\GetRoute;
 use LinFly\Annotation\Route\HeadRoute;
@@ -112,6 +113,9 @@ class AnnotationBootstrap implements Bootstrap
             PatchRoute::class,
             OptionsRoute::class,
             PutRoute::class,
+
+            // 绑定原生路由
+            BindRoute::class,
 
             // 中间件注解
             Middleware::class,

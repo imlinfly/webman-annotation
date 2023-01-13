@@ -67,6 +67,7 @@ return [
 > 除`@Route`注解外，其他注解都是v1.0.5版本开始支持
 >
 > 除`@Route`注解外，其他注解都是`@Route`的别名，使用方式一致
+>
 
 ```php
 use LinFly\Annotation\Route\Controller;
@@ -169,6 +170,34 @@ class IndexController
      */
     // PHP8注解方式
     //#[Validate(validate: UserValidate::class)]
+    public function index(Request $request)
+    {
+        return response('hello webman');
+    }
+}
+```
+
+### 绑定原生路由
+
+> 绑定Webman原生路由后，在不使用注解路由的情况下，可以使用注解中间件、验证器等功能
+>
+> 注解类 `@BindRoute` 无参数
+>
+> 绑定原生路由 `v1.0.7` 版本开始支持
+
+```php
+use LinFly\Annotation\Route\BindRoute;
+use LinFly\Annotation\Route\Middleware;
+use LinFly\Annotation\Validate\Validate;
+use support\Request;
+use support\Response;
+use app\validate\UserValidate;
+
+class IndexController
+{
+    #[BindRoute] // 绑定原生路由后，可以使用注解中间件、验证器等功能
+    #[Validate(validate: UserValidate::class)]
+    #[Middleware(middlewares=[TokenCheckMiddleware::class])]
     public function index(Request $request)
     {
         return response('hello webman');
@@ -532,6 +561,7 @@ return [
 ### v1.0.7 待发布
 
 1. 新增依赖注入功能
+2. 新增绑定原生路由注解
 
 ### v1.0.6
 

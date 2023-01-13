@@ -12,6 +12,7 @@ namespace LinFly\Annotation\Handle;
 
 use LinFly\Annotation\Bootstrap\AnnotationBootstrap;
 use LinFly\Annotation\Interfaces\IAnnotationHandle;
+use LinFly\Annotation\Route\BindRoute;
 use LinFly\Annotation\Route\Controller;
 use LinFly\Annotation\Route\GetRoute;
 use LinFly\Annotation\Route\HeadRoute;
@@ -44,6 +45,12 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
      * @var array
      */
     protected static array $routes = [];
+
+    /**
+     * 和原生路由绑定的注解路由列表
+     * @var array<array<string>>
+     */
+    protected static array $bindRoutes = [];
 
     /**
      * 处理路由注解
@@ -116,6 +123,12 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
                 static::$routes[] = $item;
                 break;
 
+            // 绑定原生路由注解
+            case BindRoute::class:
+                $key = $item['class'] . '@' . $item['method'];
+                static::$bindRoutes[$key] = true;
+                break;
+
             // 方法中间件注解
             case Middleware::class:
                 $middlewares = static::$middlewares[$className . ':' . $method] ??= [];
@@ -132,6 +145,9 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
      */
     public static function createRoute(bool $isClear = true): void
     {
+        // 绑定原生路由
+        self::bindNativeRoute();
+
         $useDefaultMethod = AnnotationBootstrap::$config['route']['use_default_method'] ?? true;
 
         foreach (self::$routes as $item) {
@@ -168,6 +184,26 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
         if ($isClear) {
             // 资源回收
             self::recovery();
+        }
+    }
+
+    /**
+     * 绑定原生路由
+     * @return void
+     */
+    protected static function bindNativeRoute()
+    {
+        if (empty(self::$bindRoutes)) {
+            return;
+        }
+        foreach (WebManRoute::getRoutes() as $route) {
+            $callback = $route->getCallback();
+            if (is_array($callback) && $callback[1]) {
+                $key = $callback[0] . '@' . $callback[1];
+                if (isset(static::$bindRoutes[$key])) {
+                    self::addMiddleware($route, $callback[0], $callback[1]);
+                }
+            }
         }
     }
 
@@ -210,7 +246,7 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
 
         // 添加类中间件
         foreach ($classMiddlewares as $item) {
-            // 填写了only参数且不在only参数中则跳过
+            // 填写了only参数且不在only参数中则native跳过
             if ($item['only'] && !in_array($method, $item['only'])) {
                 continue;
             } // 填写了except参数且在except参数中则跳过
@@ -240,5 +276,7 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
         self::$controllers = [];
         // 清空控制器中间件注解
         self::$middlewares = [];
+        // 清空绑定原生路由注解
+        static::$bindRoutes = [];
     }
 }

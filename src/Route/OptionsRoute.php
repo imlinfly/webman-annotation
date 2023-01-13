@@ -18,7 +18,7 @@ use LinFly\Annotation\AbstractAnnotation;
  * @Annotation
  * @Target("METHOD")
  */
-#[Attribute(Attribute::TARGET_METHOD | Attribute::TARGET_PARAMETER | Attribute::IS_REPEATABLE)]
+#[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
 class OptionsRoute extends AbstractAnnotation
 {
     public array $_extraValues = [
