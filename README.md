@@ -195,7 +195,7 @@ use app\validate\UserValidate;
 
 class IndexController
 {
-    #[BindRoute] // 绑定原生路由后，可以使用注解中间件、验证器等功能
+    #[BindRoute]
     #[Validate(validate: UserValidate::class)]
     #[Middleware(middlewares=[TokenCheckMiddleware::class])]
     public function index(Request $request)
