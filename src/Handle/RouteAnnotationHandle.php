@@ -126,7 +126,7 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
             // 绑定原生路由注解
             case BindRoute::class:
                 $key = $item['class'] . '@' . $item['method'];
-                static::$bindRoutes[$key] = true;
+                static::$bindRoutes[$key] = $item;
                 break;
 
             // 方法中间件注解
@@ -200,8 +200,9 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
             $callback = $route->getCallback();
             if (is_array($callback) && $callback[1]) {
                 $key = $callback[0] . '@' . $callback[1];
-                if (isset(static::$bindRoutes[$key])) {
-                    self::addMiddleware($route, $callback[0], $callback[1]);
+                $item = static::$bindRoutes[$key] ?? false;
+                if ($item) {
+                    self::setRouteInfo($route, $item);
                 }
             }
         }
@@ -222,6 +223,20 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
         $parameters['methods'] = array_map('strtoupper', (array)$parameters['methods']);
         // 添加路由
         $route = WebManRoute::add($parameters['methods'], ($path ?: '/'), [$item['class'], $item['method']]);
+
+        self::setRouteInfo($route, $item);
+    }
+
+    /**
+     * 设置路由信息
+     * @param RouteObject $route
+     * @param array $item
+     * @return void
+     */
+    protected static function setRouteInfo(RouteObject $route, array $item)
+    {
+        $parameters = $item['parameters'];
+
         // 路由参数
         $parameters['params'] && $route->setParams($parameters['params']);
         // 路由名称

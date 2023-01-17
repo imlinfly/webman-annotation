@@ -181,7 +181,7 @@ class IndexController
 
 > 绑定Webman原生路由后，在不使用注解路由的情况下，也能使用注解中间件、验证器等功能
 >
-> 注解类 `@BindRoute` 无参数
+> 注解类 `@BindRoute`
 >
 > 绑定原生路由 `v1.0.7` 版本开始支持
 
@@ -195,11 +195,18 @@ use app\validate\UserValidate;
 
 class IndexController
 {
-    #[BindRoute]
+    /**
+    * 绑定原生路由注解参数说明
+    * @param array $params 路由参数
+    * @param string $name 路由名称 用于生成url的别名
+    */
+    #[BindRoute(params: ['info' => 'test_bind_route'], name: 'test_bind_route')]
     #[Validate(validate: UserValidate::class)]
     #[Middleware(middlewares=[TokenCheckMiddleware::class])]
     public function index(Request $request)
     {
+        $name = $request->route->getName();
+        $params = $request->route->param();
         return response('hello webman');
     }
 }
@@ -557,6 +564,10 @@ return [
 ```
 
 ## 更新日志
+
+### v1.0.8
+
+1. 新增绑定原生路由注解支持绑定路由参数和路由命名
 
 ### v1.0.7
 

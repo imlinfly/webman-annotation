@@ -21,9 +21,16 @@ use LinFly\Annotation\AbstractAnnotation;
 #[Attribute(Attribute::TARGET_METHOD)]
 class BindRoute extends AbstractAnnotation
 {
-    public function __construct()
+    /**
+     * @param array $params 路由参数
+     * @param string $name 路由名称 用于生成url的别名
+     */
+    public function __construct(
+        public array  $params = [],
+        public string $name = '',
+    )
     {
         // 解析参数
-        $this->paresArgs(func_get_args(), '');
+        $this->paresArgs(func_get_args(), 'params');
     }
 }
