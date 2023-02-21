@@ -297,6 +297,48 @@ class TestController extends UserAuthController
 }
 ```
 
+### 根据命名空间注解
+
+> 根据命名空间的名称自动设置控制器路径，配合"注解继承"来使用更方便。
+>
+> 注解类 `@NamespaceController`
+>
+> 绑定原生路由 `v1.0.7` 版本开始支持
+
+### 参数说明
+
+```php
+/**
+ * @param string|array $path
+ * 自定义控制器路径 变量{$className}值为删除命名空间前缀后转小驼峰的名称
+ * 
+ * @param string $namespace
+ * 需要删除的命名空间前缀
+ * 
+ * @param null|callable $filter
+ * 自定义过滤器
+ */
+public function __construct(string|array $path = '/{$className}', public string $namespace = '', ?callable $filter = null);
+```
+
+### 使用例子
+
+```php
+use LinFly\Annotation\Route\NamespaceController;
+use LinFly\Annotation\Route\GetRoute;
+
+// 自动设置控制器路径，通过注解继承来使用则只需要在父类上使用命名空间注解即可
+#[NamespaceController(namespace: 'app\controller')]
+class IndexController
+{
+    #[GetRoute]
+    public function index()
+    {
+        return 'hello webman';
+    }
+}
+```
+
 ## 依赖注入
 
 ### 配置
@@ -564,6 +606,10 @@ return [
 ```
 
 ## 更新日志
+
+### v1.0.9
+
+1. 新增根据命名空间自动设置控制器路径的注解
 
 ### v1.0.8
 

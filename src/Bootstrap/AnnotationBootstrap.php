@@ -19,6 +19,7 @@ use LinFly\Annotation\Route\Controller;
 use LinFly\Annotation\Route\GetRoute;
 use LinFly\Annotation\Route\HeadRoute;
 use LinFly\Annotation\Route\Middleware;
+use LinFly\Annotation\Route\NamespaceController;
 use LinFly\Annotation\Route\OptionsRoute;
 use LinFly\Annotation\Route\PatchRoute;
 use LinFly\Annotation\Route\PostRoute;
@@ -104,6 +105,8 @@ class AnnotationBootstrap implements Bootstrap
         Annotation::addHandle([
             // 控制器注解
             Controller::class,
+            // 命名空间控制器注解
+            NamespaceController::class,
 
             // 路由注解
             Route::class,

@@ -400,7 +400,7 @@ abstract class Annotation
      * @param Closure|null $inherit
      * @return array
      */
-    protected static function buildScanAnnotationItems(array $attributes, array $parameters = [], \Closure $inherit = null): array
+    protected static function buildScanAnnotationItems(array $attributes, array $parameters = [], Closure $inherit = null): array
     {
         $annotations = [];
 
@@ -430,7 +430,7 @@ abstract class Annotation
             unset($annotation);
         }
 
-        if ($inherit instanceof \Closure) {
+        if ($inherit instanceof Closure) {
             $inherit($annotations);
         }
 
@@ -602,6 +602,7 @@ abstract class Annotation
     {
         if (is_null(self::$annotationReader)) {
             self::$annotationReader = new AnnotationReader();
+            AnnotationReader::addGlobalIgnoredName('mixin');
         }
         return clone self::$annotationReader;
     }

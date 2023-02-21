@@ -17,6 +17,7 @@ use LinFly\Annotation\Route\Controller;
 use LinFly\Annotation\Route\GetRoute;
 use LinFly\Annotation\Route\HeadRoute;
 use LinFly\Annotation\Route\Middleware;
+use LinFly\Annotation\Route\NamespaceController;
 use LinFly\Annotation\Route\OptionsRoute;
 use LinFly\Annotation\Route\PatchRoute;
 use LinFly\Annotation\Route\PostRoute;
@@ -33,6 +34,12 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
      * @var array
      */
     protected static array $controllers = [];
+
+    /**
+     * 命名空间控制器注解
+     * @var array
+     */
+    protected static array $namespaceControllers = [];
 
     /**
      * 控制器中间件
@@ -84,6 +91,16 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
             case  Controller::class:
                 static::$controllers[$className] ??= [];
                 static::$controllers[$className][] = $parameters;
+                break;
+
+            // 命名空间控制器注解
+            case  NamespaceController::class:
+                static::$namespaceControllers[$className] = [
+                    'class' => $item['class'],
+                    'namespace' => $parameters['namespace'],
+                    'filter' => $parameters['filter'] ?? [NamespaceController::class, 'camel'],
+                    'path' => $parameters['path'],
+                ];
                 break;
 
             // 控制器中间件注解
@@ -165,9 +182,33 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
                 continue;
             }
 
+            // 命名空间后缀
+            $controllerSuffix = (string)config('app.controller_suffix');
+
             foreach (self::$controllers[$item['class']] ?? [['prefix' => '']] as $controller) {
+
+                if ($namespaceController = self::$namespaceControllers[$item['class']] ?? false) {
+                    $namespace = $namespaceController['namespace'];
+                    $filter = $namespaceController['filter'];
+                    $path = $namespaceController['path'];
+                    $class = $namespaceController['class'];
+
+                    // 删除控制器后缀
+                    if ($controllerSuffix && str_ends_with($class, $controllerSuffix)) {
+                        $class = substr($class, 0, -strlen($controllerSuffix));
+                    }
+
+                    // 删除命名空间
+                    $class = str_replace([$namespace, '\\'], ['', '/'], $class);
+                    $class = $filter($class);
+                    $controllerPath = str_replace('{$className}', trim($class, '/'), $path);
+                } else {
+                    $controllerPath = $controller['prefix'] ?? '';
+                }
+
+
                 // 控制器注解的path参数
-                $controllerPath = trim($controller['prefix'] ?? '', '/');
+                $controllerPath = trim($controllerPath, '/');
                 // 路由注解的path参数
                 $routePath = $parameters['path'];
 
