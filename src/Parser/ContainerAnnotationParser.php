@@ -8,22 +8,15 @@
  */
 declare (strict_types=1);
 
-namespace LinFly\Annotation\Handle;
+namespace LinFly\Annotation\Parser;
 
-use Doctrine\Common\Annotations\PhpParser;
-use LinFly\Annotation\Annotation\Bean;
-use LinFly\Annotation\Annotation\Inject;
-use LinFly\Annotation\Interfaces\IAnnotationHandle;
-use LinFly\Exception\NotFoundException;
+use LinFly\Annotation\Attributes\Bean;
+use LinFly\Annotation\Contracts\IAnnotationParser;
 use LinFly\FacadeContainer;
-use ReflectionClass;
-use ReflectionException;
-use ReflectionProperty;
-use support\Container;
 
-class ContainerAnnotationHandle implements IAnnotationHandle
+class ContainerAnnotationParser implements IAnnotationParser
 {
-    public static function handle(array $item): void
+    public static function process(array $item): void
     {
         if ($item['annotation'] == Bean::class) {
             self::definition($item);

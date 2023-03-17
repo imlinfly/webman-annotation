@@ -8,9 +8,9 @@
  */
 declare (strict_types=1);
 
-namespace LinFly\Annotation\Interfaces;
+namespace LinFly\Annotation\Contracts;
 
-interface IAnnotationHandle
+interface IAnnotationParser
 {
     /**
      * 注解处理
@@ -18,5 +18,5 @@ interface IAnnotationHandle
      * @param array $item
      * @return void
      */
-    public static function handle(array $item): void;
+    public static function process(array $item): void;
 }

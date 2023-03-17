@@ -20,31 +20,18 @@ use ReflectionProperty;
 use ReflectionAttribute;
 use ReflectionException;
 use ReflectionParameter;
-use LinFly\Annotation\Annotation\Inherit;
+use LinFly\Annotation\Attributes\Inherit;
 use LinFly\Annotation\Util\AnnotationUtil;
-use Doctrine\Common\Annotations\AnnotationReader;
-use LinFly\Annotation\Interfaces\IAnnotationItem;
-use LinFly\Annotation\Interfaces\IAnnotationHandle;
+use LinFly\Annotation\Contracts\IAnnotationAttribute;
+use LinFly\Annotation\Contracts\IAnnotationParser;
 
 abstract class Annotation
 {
-    /**
-     * 注解处理类
-     * @var array
-     */
-    protected static array $handle = [];
-
     /**
      * 注解类结果集
      * @var array
      */
     protected static array $annotations = [];
-
-    /**
-     * 注释解析器
-     * @var AnnotationReader|null
-     */
-    protected static ?AnnotationReader $annotationReader = null;
 
     /**
      * 扫描注解类
@@ -106,63 +93,14 @@ abstract class Annotation
                         // 注解类
                         $annotationClass = $item['annotation'];
                         // 调用注解处理类
-                        if (isset(self::$handle[$annotationClass])) {
-                            /** @var IAnnotationHandle $handle */
-                            foreach (self::$handle[$annotationClass] as $handle) {
-                                [$handle, 'handle']($item, $class);
-                            }
+                        /** @var IAnnotationParser $handle */
+                        foreach ((array)$annotationClass::getParser() as $handle) {
+                            [$handle, 'process']($item, $class);
                         }
                     }
                 }
             }
         }
-    }
-
-    /**
-     * 解析类注解 包括：类注解、属性注解、方法注解、方法参数注解
-     * @access public
-     * @param string|ReflectionClass $className
-     * @return array
-     * @throws ReflectionException
-     */
-    public static function parseClassAnnotations(string|ReflectionClass $className): array
-    {
-        $reflectionClass = is_string($className) ? new ReflectionClass($className) : $className;
-
-        $methods = $properties = [];
-
-        // 获取类的注解
-        $class = self::getClassAnnotations($reflectionClass);
-        // 获取所有方法的注解
-        foreach ($reflectionClass->getMethods() as $reflectionMethod) {
-            // 获取方法注解
-            $method = self::getMethodAnnotations($reflectionMethod);
-            // 获取方法参数注解
-            $parameters = [];
-            // 获取方法参数的注解
-            foreach ($reflectionMethod->getParameters() as $reflectionParameter) {
-                $parameter = self::getMethodParameterAnnotations($reflectionMethod, $reflectionParameter);
-                $parameter && ($parameters[$reflectionParameter->name] = $parameter);
-            }
-            // 跳过空数据
-            if (empty($method) && empty($parameters)) {
-                continue;
-            }
-
-            $methods[$reflectionMethod->name] = [
-                // 方法注解
-                'methods' => $method,
-                // 方法参数注解
-                'parameters' => $parameters,
-            ];
-        }
-        // 获取所有属性的注解
-        foreach ($reflectionClass->getProperties() as $reflectionProperty) {
-            $property = self::getPropertyAnnotations($reflectionClass, $reflectionProperty);
-            $property && ($properties[$reflectionProperty->name] = $property);
-        }
-
-        return ['class' => $class, 'method' => $methods, 'property' => $properties];
     }
 
     /**
@@ -211,12 +149,9 @@ abstract class Annotation
         $reflection = is_string($className) ? new ReflectionClass($className) : $className;
 
         $annotations = self::cache($reflection->getName(), 'class', function () use ($className, $reflection) {
-            // 扫描PHP8原生注解
+            // 扫描注解
             $attributes = $reflection->getAttributes();
-            // 通过注释解析为注解
-            $readerAttributes = self::getAnnotationReader()->getClassAnnotations($reflection);
-
-            return self::buildScanAnnotationItems([...$attributes, ...$readerAttributes], [
+            return self::buildScanAnnotationItems($attributes, [
                 'type' => 'class',
                 // 类名
                 'class' => $reflection->name,
@@ -258,12 +193,9 @@ abstract class Annotation
         $tag = 'method.' . $reflectionMethod->name;
 
         $annotations = self::cache($reflectionMethod->class, $tag, function () use ($reflectionMethod) {
-            // 扫描PHP8原生注解
+            // 扫描注解
             $attributes = $reflectionMethod->getAttributes();
-            // 通过注释解析为注解
-            $readerAttributes = self::getAnnotationReader()->getMethodAnnotations($reflectionMethod);
-
-            return self::buildScanAnnotationItems([...$attributes, ...$readerAttributes], [
+            return self::buildScanAnnotationItems($attributes, [
                 'type' => 'method',
                 // 类名
                 'class' => $reflectionMethod->class,
@@ -311,12 +243,9 @@ abstract class Annotation
         $tag = 'property.' . $reflectionProperty->name;
 
         $annotations = self::cache($reflectionClass->name, $tag, function () use ($reflectionProperty) {
-            // 扫描PHP8原生注解
+            // 扫描注解
             $attributes = $reflectionProperty->getAttributes();
-            // 通过注释解析为注解
-            $readerAttributes = self::getAnnotationReader()->getPropertyAnnotations($reflectionProperty);
-
-            return self::buildScanAnnotationItems([...$attributes, ...$readerAttributes], [
+            return self::buildScanAnnotationItems($attributes, [
                 'type' => 'property',
                 // 类名
                 'class' => $reflectionProperty->class,
@@ -375,9 +304,8 @@ abstract class Annotation
         $tag = 'parameter.' . $reflectionMethod->name . '.' . $reflectionParameter->name;
 
         $annotations = self::cache($reflectionMethod->class, $tag, function () use ($reflectionMethod, $reflectionParameter) {
-            // 扫描PHP8原生注解
+            // 扫描注解
             $attributes = $reflectionParameter->getAttributes();
-
             return self::buildScanAnnotationItems($attributes, [
                 'type' => 'parameter',
                 // 类名
@@ -404,17 +332,12 @@ abstract class Annotation
     {
         $annotations = [];
 
+        /** @var ReflectionAttribute $attribute */
         foreach ($attributes as $attribute) {
+            // 获取注解类实例
+            $annotation = $attribute->newInstance();
 
-            if ($attribute instanceof ReflectionAttribute) {
-                // 获取注解类实例
-                /** @var IAnnotationItem $annotation */
-                $annotation = self::reflectionAttributeToAnnotation($attribute);
-            } else {
-                $annotation = $attribute;
-            }
-
-            if (!$annotation instanceof IAnnotationItem) {
+            if (!$annotation instanceof IAnnotationAttribute) {
                 continue;
             }
 
@@ -541,69 +464,5 @@ abstract class Annotation
     {
         $instance = $attribute->newInstance();
         return $instance->setArguments($attribute->getArguments());
-    }
-
-    /**
-     * 获取注解处理类
-     * @param string|null $annotation
-     * @return array|string|null
-     */
-    public static function getHandle(string $annotation = null): array|string|null
-    {
-        return $annotation ? self::$handle[$annotation] ?? null : self::$handle;
-    }
-
-    /**
-     * 添加注解处理类
-     * @param string|array $annotationClass
-     * @param string $handleClass
-     * @return array
-     */
-    public static function addHandle(string|array $annotationClass, string $handleClass): array
-    {
-        if (is_array($annotationClass)) {
-            foreach ($annotationClass as $annotation) {
-                self::addHandle($annotation, $handleClass);
-            }
-            return self::$handle;
-        }
-
-        self::$handle[$annotationClass] ??= [];
-        self::$handle[$annotationClass][] = $handleClass;
-        return self::$handle;
-    }
-
-    /**
-     * 移除注解处理类
-     * @param string $annotationClass
-     * @param string|null $handleClass
-     * @return array
-     */
-    public static function removeHandle(string $annotationClass, string $handleClass = null): array
-    {
-        if ($handleClass) {
-            $key = array_search($handleClass, self::$handle[$annotationClass] ?? []);
-            if ($key !== false) {
-                unset(self::$handle[$annotationClass][$key]);
-            }
-        } else {
-            unset(self::$handle[$annotationClass]);
-        }
-
-        return self::$handle;
-    }
-
-    /**
-     * 获取注释解析器
-     * @access public
-     * @return AnnotationReader
-     */
-    public static function getAnnotationReader(): AnnotationReader
-    {
-        if (is_null(self::$annotationReader)) {
-            self::$annotationReader = new AnnotationReader();
-            AnnotationReader::addGlobalIgnoredName('mixin');
-        }
-        return clone self::$annotationReader;
     }
 }

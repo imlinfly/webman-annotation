@@ -10,27 +10,12 @@ declare (strict_types=1);
 
 namespace LinFly\Annotation\Bootstrap;
 
-use LinFly\Annotation\Handle\ContainerAnnotationHandle;
-use LinFly\Annotation\Handle\InjectAnnotationHandle;
-use LinFly\Annotation\Handle\RouteAnnotationHandle;
-use LinFly\Annotation\Handle\ValidateAnnotationHandle;
-use LinFly\Annotation\Route\BindRoute;
-use LinFly\Annotation\Route\Controller;
-use LinFly\Annotation\Route\GetRoute;
-use LinFly\Annotation\Route\HeadRoute;
-use LinFly\Annotation\Route\Middleware;
-use LinFly\Annotation\Route\NamespaceController;
-use LinFly\Annotation\Route\OptionsRoute;
-use LinFly\Annotation\Route\PatchRoute;
-use LinFly\Annotation\Route\PostRoute;
-use LinFly\Annotation\Route\PutRoute;
-use LinFly\Annotation\Route\Route;
+use LinFly\Annotation\Annotation;
+use LinFly\Annotation\Parser\InjectAnnotationParser;
 use LinFly\Annotation\Util\AnnotationUtil;
-use LinFly\Annotation\Validate\Validate;
 use ReflectionException;
 use support\Container;
 use Webman\Bootstrap;
-use LinFly\Annotation\Annotation;
 
 class AnnotationBootstrap implements Bootstrap
 {
@@ -80,8 +65,8 @@ class AnnotationBootstrap implements Bootstrap
             return;
         }
 
-        // 注册注解处理类
-        self::createAnnotationHandle();
+        // 绑定容器回调
+        self::bindCallbackBeforeCall();
 
         echo '[Process:' . self::$workerName . '] Start scan annotations...' . PHP_EOL;
         $time = microtime(true);
@@ -96,49 +81,17 @@ class AnnotationBootstrap implements Bootstrap
     }
 
     /**
-     * 设置注解处理回调
+     * 绑定容器回调
      * @return void
      */
-    protected static function createAnnotationHandle(): void
+    protected static function bindCallbackBeforeCall(): void
     {
-        // 添加注解处理类
-        Annotation::addHandle([
-            // 控制器注解
-            Controller::class,
-            // 命名空间控制器注解
-            NamespaceController::class,
-
-            // 路由注解
-            Route::class,
-            GetRoute::class,
-            PostRoute::class,
-            HeadRoute::class,
-            PatchRoute::class,
-            OptionsRoute::class,
-            PutRoute::class,
-
-            // 绑定原生路由
-            BindRoute::class,
-
-            // 中间件注解
-            Middleware::class,
-        ], RouteAnnotationHandle::class);
-
-        // 验证器注解
-        Annotation::addHandle(Validate::class, ValidateAnnotationHandle::class);
-
-        // 依赖注入注解
-        Annotation::addHandle(Annotation\Inject::class, InjectAnnotationHandle::class);
-
         if (Container::instance() instanceof \LinFly\Container) {
             // 绑定容器调用前的回调
             Container::instance()->bindCallbackBeforeCall('*', [
-                InjectAnnotationHandle::class, 'bindCallbackBeforeCall'
+                InjectAnnotationParser::class, 'bindCallbackBeforeCall'
             ]);
         }
-
-        // 容器实例命名注解
-        Annotation::addHandle(Annotation\Bean::class, ContainerAnnotationHandle::class);
     }
 
     /**

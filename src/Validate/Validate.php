@@ -12,14 +12,14 @@ namespace LinFly\Annotation\Validate;
 
 use Attribute;
 use Doctrine\Common\Annotations\Annotation\Target;
-use LinFly\Annotation\AbstractAnnotation;
+use LinFly\Annotation\AbstractAnnotationAttribute;
 
 /**
  * @Annotation
  * @Target({"CLASS", "METHOD"})
  */
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD | \Attribute::IS_REPEATABLE)]
-class Validate extends AbstractAnnotation
+class Validate extends AbstractAnnotationAttribute
 {
     /**
      * 验证器注解类
@@ -37,6 +37,6 @@ class Validate extends AbstractAnnotation
     public function __construct(public string|array $params = '$all', public string $validate = '', public string $scene = '')
     {
         // 解析参数
-        $this->paresArgs(func_get_args(), 'params');
+        $this->setArguments(func_get_args(), 'params');
     }
 }

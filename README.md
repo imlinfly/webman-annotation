@@ -18,7 +18,7 @@
 ## 安装
 
 ```shell
-composer require linfly/annotation
+composer require linfly/annotation:^1.0
 ```
 
 ## 配置

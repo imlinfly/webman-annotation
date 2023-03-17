@@ -8,26 +8,26 @@
  */
 declare (strict_types=1);
 
-namespace LinFly\Annotation\Handle;
+namespace LinFly\Annotation\Parser;
 
+use LinFly\Annotation\Attributes\Route\RequestMapping;
 use LinFly\Annotation\Bootstrap\AnnotationBootstrap;
-use LinFly\Annotation\Interfaces\IAnnotationHandle;
-use LinFly\Annotation\Route\BindRoute;
-use LinFly\Annotation\Route\Controller;
-use LinFly\Annotation\Route\GetRoute;
-use LinFly\Annotation\Route\HeadRoute;
-use LinFly\Annotation\Route\Middleware;
-use LinFly\Annotation\Route\NamespaceController;
-use LinFly\Annotation\Route\OptionsRoute;
-use LinFly\Annotation\Route\PatchRoute;
-use LinFly\Annotation\Route\PostRoute;
-use LinFly\Annotation\Route\PutRoute;
-use LinFly\Annotation\Route\Route;
+use LinFly\Annotation\Contracts\IAnnotationParser;
+use LinFly\Annotation\Attributes\Route\BindRoute;
+use LinFly\Annotation\Attributes\Route\Controller;
+use LinFly\Annotation\Attributes\Route\GetMapping;
+use LinFly\Annotation\Attributes\Route\HeadMapping;
+use LinFly\Annotation\Attributes\Route\Middleware;
+use LinFly\Annotation\Attributes\Route\NamespaceController;
+use LinFly\Annotation\Attributes\Route\OptionsMapping;
+use LinFly\Annotation\Attributes\Route\PatchMapping;
+use LinFly\Annotation\Attributes\Route\PostMapping;
+use LinFly\Annotation\Attributes\Route\PutMapping;
 use LinFly\Annotation\Validate\ValidateMiddleware;
 use Webman\Route as WebManRoute;
 use Webman\Route\Route as RouteObject;
 
-abstract class RouteAnnotationHandle implements IAnnotationHandle
+abstract class RouteAnnotationParser implements IAnnotationParser
 {
     /**
      * 控制器注解
@@ -65,7 +65,7 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
      * @param array $item
      * @return void
      */
-    public static function handle(array $item): void
+    public static function process(array $item): void
     {
         if ($item['type'] === 'class') {
             self::handleClassAnnotation($item, $item['class']);
@@ -130,13 +130,13 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
 
         switch ($annotation) {
             // 路由注解
-            case Route::class:
-            case GetRoute::class:
-            case PostRoute::class:
-            case HeadRoute::class:
-            case PatchRoute::class:
-            case OptionsRoute::class:
-            case PutRoute::class:
+            case RequestMapping::class:
+            case GetMapping::class:
+            case PostMapping::class:
+            case HeadMapping::class:
+            case PatchMapping::class:
+            case OptionsMapping::class:
+            case PutMapping::class:
                 static::$routes[] = $item;
                 break;
 
@@ -316,7 +316,7 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
         $route->middleware($methodMiddlewares);
 
         // 如果有验证器注解则添加验证器中间件
-        if (ValidateAnnotationHandle::isExistValidate($class, $method)) {
+        if (ValidateAnnotationParser::isExistValidate($class, $method)) {
             $route->middleware(ValidateMiddleware::class);
         }
     }

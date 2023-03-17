@@ -8,27 +8,31 @@
  */
 declare (strict_types=1);
 
-namespace LinFly\Annotation\Route;
+namespace LinFly\Annotation\Attributes\Route;
 
 use Attribute;
-use Doctrine\Common\Annotations\Annotation\Target;
-use LinFly\Annotation\AbstractAnnotation;
+use LinFly\Annotation\AbstractAnnotationAttribute;
+use LinFly\Annotation\Parser\RouteAnnotationParser;
 
 /**
  * @Annotation
- * @Target("CLASS", "METHOD")
  */
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD | \Attribute::IS_REPEATABLE)]
-class Middleware extends AbstractAnnotation
+class Middleware extends AbstractAnnotationAttribute
 {
     /**
      * 注解中间件
-     * @param string|array $middlewares 路由中间件 支持多个中间件
+     * @param string $middlewares 路由中间件 支持多个中间件
      * @param array $only 指定需要走中间件的方法, 不指定则全部走中间件, 与except互斥 只支持在控制器中使用
      * @param array $except 指定不需要走中间件的方法, 不指定则全部走中间件, 与only互斥 只支持在控制器中使用
      */
-    public function __construct(public string|array $middlewares, public array $only = [], public array $except = [])
+    public function __construct(public string $middlewares, public array $only = [], public array $except = [])
     {
-        $this->paresArgs(func_get_args(), 'middlewares');
+        $this->setArguments(func_get_args());
+    }
+
+    public static function getParser(): string
+    {
+        return RouteAnnotationParser::class;
     }
 }

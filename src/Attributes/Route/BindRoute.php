@@ -8,18 +8,17 @@
  */
 declare (strict_types=1);
 
-namespace LinFly\Annotation\Route;
+namespace LinFly\Annotation\Attributes\Route;
 
 use Attribute;
-use Doctrine\Common\Annotations\Annotation\Target;
-use LinFly\Annotation\AbstractAnnotation;
+use LinFly\Annotation\AbstractAnnotationAttribute;
+use LinFly\Annotation\Parser\RouteAnnotationParser;
 
 /**
  * @Annotation
- * @Target("METHOD")
  */
 #[Attribute(Attribute::TARGET_METHOD)]
-class BindRoute extends AbstractAnnotation
+class BindRoute extends AbstractAnnotationAttribute
 {
     /**
      * @param array $params 路由参数
@@ -31,6 +30,11 @@ class BindRoute extends AbstractAnnotation
     )
     {
         // 解析参数
-        $this->paresArgs(func_get_args(), 'params');
+        $this->setArguments(func_get_args());
+    }
+
+    public static function getParser(): string
+    {
+        return RouteAnnotationParser::class;
     }
 }

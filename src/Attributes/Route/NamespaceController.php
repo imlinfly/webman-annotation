@@ -8,28 +8,32 @@
  */
 declare (strict_types=1);
 
-namespace LinFly\Annotation\Route;
+namespace LinFly\Annotation\Attributes\Route;
 
 use Attribute;
-use Doctrine\Common\Annotations\Annotation\Target;
-use LinFly\Annotation\AbstractAnnotation;
+use LinFly\Annotation\AbstractAnnotationAttribute;
+use LinFly\Annotation\Parser\RouteAnnotationParser;
 
 /**
  * @Annotation
- * @Target("CLASS")
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-class NamespaceController extends AbstractAnnotation
+class NamespaceController extends AbstractAnnotationAttribute
 {
     /**
-     * @param string|array $path 自定义控制器路径 变量{$className}值为删除命名空间前缀后转小驼峰的名称
+     * @param string $path 自定义控制器路径 变量{$className}值为删除命名空间前缀后转小驼峰的名称
      * @param string $namespace 需要删除的命名空间前缀
      * @param null|callable $filter 自定义过滤器
      */
-    public function __construct(string|array $path = '/{$className}', public string $namespace = '', ?callable $filter = null)
+    public function __construct(string $path = '/{$className}', public string $namespace = '', ?callable $filter = null)
     {
         // 解析参数
-        $this->paresArgs(func_get_args(), 'path');
+        $this->setArguments(func_get_args());
+    }
+
+    public static function getParser(): string
+    {
+        return RouteAnnotationParser::class;
     }
 
     public static function camel(string $value): string

@@ -8,18 +8,16 @@
  */
 declare (strict_types=1);
 
-namespace LinFly\Annotation\Annotation;
+namespace LinFly\Annotation\Attributes;
 
 use Attribute;
-use Doctrine\Common\Annotations\Annotation\Target;
-use LinFly\Annotation\AbstractAnnotation;
+use LinFly\Annotation\AbstractAnnotationAttribute;
 
 /**
  * @Annotation
- * @Target("CLASS", "METHOD")
  */
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
-class Inherit extends AbstractAnnotation
+class Inherit extends AbstractAnnotationAttribute
 {
     /**
      * @param array|false $only 指定需要继承的方法, 不指定则全部继承, 与except互斥; 如果为false, 则不继承任何注解
@@ -29,6 +27,6 @@ class Inherit extends AbstractAnnotation
     public function __construct(public array|false $only = [], public array $except = [], public bool $merge = true)
     {
         // 解析参数
-        $this->paresArgs(func_get_args(), 'only');
+        $this->setArguments(func_get_args());
     }
 }

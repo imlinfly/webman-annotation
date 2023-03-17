@@ -8,12 +8,12 @@
  */
 declare (strict_types=1);
 
-namespace LinFly\Annotation\Handle;
+namespace LinFly\Annotation\Parser;
 
 use Generator;
-use LinFly\Annotation\Interfaces\IAnnotationHandle;
+use LinFly\Annotation\Contracts\IAnnotationParser;
 
-class ValidateAnnotationHandle implements IAnnotationHandle
+class ValidateAnnotationParser implements IAnnotationParser
 {
     /**
      * 验证器注解列表
@@ -27,7 +27,7 @@ class ValidateAnnotationHandle implements IAnnotationHandle
      * @param array $item
      * @return void
      */
-    public static function handle(array $item): void
+    public static function process(array $item): void
     {
         if ($item['type'] == 'class') {
             $key = $item['class'];

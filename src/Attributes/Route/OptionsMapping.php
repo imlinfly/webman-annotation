@@ -8,25 +8,29 @@
  */
 declare (strict_types=1);
 
-namespace LinFly\Annotation\Route;
+namespace LinFly\Annotation\Attributes\Route;
 
 use Attribute;
-use Doctrine\Common\Annotations\Annotation\Target;
-use LinFly\Annotation\AbstractAnnotation;
+use LinFly\Annotation\AbstractAnnotationAttribute;
+use LinFly\Annotation\Parser\RouteAnnotationParser;
 
 /**
  * @Annotation
- * @Target("METHOD")
  */
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
-class PostRoute extends AbstractAnnotation
+class OptionsMapping extends AbstractAnnotationAttribute
 {
     public array $_extraValues = [
-        'methods' => ['POST'],
+        'methods' => ['OPTIONS'],
     ];
 
     public function __construct(public string|array $path = '', public string $name = '', public array $params = [])
     {
-        $this->paresArgs(func_get_args(), 'path');
+        $this->setArguments(func_get_args());
+    }
+
+    public static function getParser(): string
+    {
+        return RouteAnnotationParser::class;
     }
 }

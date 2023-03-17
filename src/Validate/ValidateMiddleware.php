@@ -11,7 +11,7 @@ declare (strict_types=1);
 namespace LinFly\Annotation\Validate;
 
 use LinFly\Annotation\Bootstrap\AnnotationBootstrap;
-use LinFly\Annotation\Handle\ValidateAnnotationHandle;
+use LinFly\Annotation\Parser\ValidateAnnotationParser;
 use Webman\Http\Request;
 use Webman\Http\Response;
 use Webman\MiddlewareInterface;
@@ -29,13 +29,13 @@ class ValidateMiddleware implements MiddlewareInterface
     {
         /** @var IValidateHandle $validateHandle */
         // 无验证器验证 或 验证器验证处理类为空则不处理
-        if (!ValidateAnnotationHandle::isExistValidate($request->controller, $request->action)
+        if (!ValidateAnnotationParser::isExistValidate($request->controller, $request->action)
             || empty($validateHandle = AnnotationBootstrap::$config['validate']['handle'] ?? '')) {
             return $handler($request);
         }
 
         // 获取验证器列表
-        $generator = ValidateAnnotationHandle::getValidates($request->controller, $request->action);
+        $generator = ValidateAnnotationParser::getValidates($request->controller, $request->action);
 
         foreach ($generator as $item) {
 

@@ -8,22 +8,21 @@
  */
 declare (strict_types=1);
 
-namespace LinFly\Annotation\Handle;
+namespace LinFly\Annotation\Parser;
 
-use Doctrine\Common\Annotations\PhpParser;
-use LinFly\Annotation\Annotation\Inject;
-use LinFly\Annotation\Interfaces\IAnnotationHandle;
+use LinFly\Annotation\Attributes\Inject;
+use LinFly\Annotation\Contracts\IAnnotationParser;
 use LinFly\Exception\NotFoundException;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
 use support\Container;
 
-class InjectAnnotationHandle implements IAnnotationHandle
+class InjectAnnotationParser implements IAnnotationParser
 {
     private static array $inject = [];
 
-    public static function handle(array $item): void
+    public static function process(array $item): void
     {
         if ($item['annotation'] == Inject::class) {
             self::parseInject($item);
@@ -47,31 +46,7 @@ class InjectAnnotationHandle implements IAnnotationHandle
         } else if ($reflectionProperty->hasType() && !$reflectionProperty->getType()->isBuiltin()) {
             $name = $reflectionProperty->getType()->getName();
         } else {
-            // 获取属性的注释
-            $document = $reflectionProperty->getDocComment();
-
-            // 获取注释中的类型
-            if (!preg_match('/\*\s+@var\s+(\S+)/', $document, $matches) || !isset($matches[1])) {
-                throw new NotFoundException('Inject annotation must have a type');
-            }
-
-            // 注入的类名
-            $name = $matches[1];
-            $lowerName = strtolower($name);
-
-            $reflectionClass = $reflectionProperty->getDeclaringClass();
-
-            // 获取类使用到的类列表
-            $phpParser = new PhpParser();
-            $stmt = $phpParser->parseUseStatements($reflectionClass);
-
-            if (isset($stmt[$lowerName])) {
-                $name = $stmt[$lowerName];
-            } else {
-                // 获取类的命名空间
-                $namespace = $reflectionClass->getNamespaceName();
-                $name = ($namespace ? $namespace . '\\' : '') . $name;
-            }
+            throw new NotFoundException('Inject annotation must have a name');
         }
 
         // 注入的参数
@@ -94,7 +69,7 @@ class InjectAnnotationHandle implements IAnnotationHandle
             // 设置属性可访问
             $reflectorProperty->setAccessible(true);
             // 获取注入的实例
-            $value = Container::instance()->make($item['name'], $item['parameters']);
+            $value = Container::instance()->getSingle($item['name'], $item['parameters']);
             // 设置属性值
             $reflectorProperty->setValue($instance, $value);
         }
