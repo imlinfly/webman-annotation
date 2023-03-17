@@ -94,7 +94,7 @@ class InjectAnnotationHandle implements IAnnotationHandle
             // 设置属性可访问
             $reflectorProperty->setAccessible(true);
             // 获取注入的实例
-            $value = Container::instance()->make($item['name'], $item['parameters']);
+            $value = Container::instance()->getSingle($item['name'], $item['parameters']);
             // 设置属性值
             $reflectorProperty->setValue($instance, $value);
         }
