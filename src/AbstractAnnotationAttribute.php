@@ -48,8 +48,13 @@ abstract class AbstractAnnotationAttribute implements IAnnotationAttribute
     {
         // 解析参数名
         $this->paresParameters();
+
+        foreach ($arguments as $key => $value) {
+            $this->_arguments[$this->_parameters[$key]] = $value;
+        }
+
         // 设置参数值
-        return $this->_arguments = $arguments;
+        return $this->_arguments;
     }
 
     /**
