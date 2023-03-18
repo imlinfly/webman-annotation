@@ -50,6 +50,10 @@ class AnnotationBootstrap implements Bootstrap
         'monitor',
     ];
 
+    protected static array $events = [];
+
+    protected static bool $isInit = false;
+
     /**
      * @param $worker
      * @return void
@@ -78,6 +82,9 @@ class AnnotationBootstrap implements Bootstrap
 
         $time = round(microtime(true) - $time, 2);
         echo '[Process:' . self::$workerName . '] Scan annotations completed, time: ' . $time . 's' . PHP_EOL;
+
+        self::$isInit = true;
+        self::triggerEvent();
     }
 
     /**
@@ -145,6 +152,22 @@ class AnnotationBootstrap implements Bootstrap
             self::$ignoreProcess = $ignoreProcess;
         } else {
             self::$ignoreProcess = array_merge(self::$ignoreProcess, $ignoreProcess);
+        }
+    }
+
+    public static function event(callable $callback)
+    {
+        if (self::$isInit) {
+            $callback();
+        } else {
+            self::$events[] = $callback;
+        }
+    }
+
+    protected static function triggerEvent()
+    {
+        foreach (self::$events as $event) {
+            $event();
         }
     }
 }
