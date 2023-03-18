@@ -56,7 +56,7 @@ abstract class AnnotationUtil
             $iterator = new FilesystemIterator($path);
         }
 
-        /** @var SplFileInfo $item */
+        /** @var SplFileInfo|string $item */
         foreach ($iterator as $item) {
             if (!$item instanceof SplFileInfo) {
                 $item = new SplFileInfo($item);
@@ -118,7 +118,7 @@ abstract class AnnotationUtil
         $tokens = token_get_all(file_get_contents($file));
         $count = count($tokens);
         // 兼容php7和php8
-        $tNamespace = version_compare(PHP_VERSION, '8.0.0', '>=') ? T_NAME_QUALIFIED : T_STRING;
+        $tNamespace = version_compare(PHP_VERSION, '8.0.0', '>=') ? [T_NAME_QUALIFIED, T_STRING] : [T_STRING];
 
         $namespace = '';
         for ($i = 2; $i < $count; $i++) {
@@ -127,7 +127,7 @@ abstract class AnnotationUtil
                 // 清空命名空间
                 $namespace = '';
                 // 不是命名空间跳过
-                if ($tokens[$i][0] !== $tNamespace) {
+                if (!in_array($tokens[$i][0], $tNamespace)) {
                     continue;
                 }
                 // 获取命名空间
