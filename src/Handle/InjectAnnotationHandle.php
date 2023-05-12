@@ -83,20 +83,20 @@ class InjectAnnotationHandle implements IAnnotationHandle
 
     public static function bindCallbackBeforeCall(object $instance, string $name, array $arguments, ReflectionClass $reflectorClass)
     {
-        // 类不存在注入属性则跳过
-        if (!isset(self::$inject[$name])) {
-            return;
-        }
-
-        foreach (self::$inject[$name] as $property => $item) {
-            // 获取注入的属性
-            $reflectorProperty = $reflectorClass->getProperty($property);
-            // 设置属性可访问
-            $reflectorProperty->setAccessible(true);
-            // 获取注入的实例
-            $value = Container::instance()->getSingle($item['name'], $item['parameters']);
-            // 设置属性值
-            $reflectorProperty->setValue($instance, $value);
+        // 获取实例的属性列表
+        foreach ($reflectorClass->getProperties() as $reflectorProperty) {
+            $propertyName = $reflectorProperty->getName();
+            $className = $reflectorProperty->class;
+            if (isset(self::$inject[$className][$propertyName])) {
+                // 获取注入属性的参数
+                $item = self::$inject[$className][$propertyName];
+                // 设置属性可访问
+                $reflectorProperty->setAccessible(true);
+                // 获取注入的实例
+                $value = Container::instance()->getSingle($item['name'], $item['parameters']);
+                // 设置属性值
+                $reflectorProperty->setValue($instance, $value);
+            }
         }
     }
 }

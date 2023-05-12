@@ -75,6 +75,12 @@ class AnnotationBootstrap implements Bootstrap
         // 初始化配置
         self::initConfig();
 
+        // 单元测试模式下需要设置进程名称，否则无法获取到进程名称导致跳过注解扫描
+        if (defined('PHPUNIT_COMPOSER_INSTALL') || defined('__PHPUNIT_PHAR__')) {
+            $worker = new \stdClass();
+            $worker->name = 'phpunit';
+        }
+
         // 跳过忽略的进程
         if (!$worker || self::isIgnoreProcess(self::$workerName = $worker->name)) {
             return;
@@ -83,16 +89,22 @@ class AnnotationBootstrap implements Bootstrap
         // 注册注解处理类
         self::createAnnotationHandle();
 
-        echo '[Process:' . self::$workerName . '] Start scan annotations...' . PHP_EOL;
-        $time = microtime(true);
+        $isFirstWorker = $worker->id === 0;
+
+        if ($isFirstWorker) {
+            echo '[Process:' . self::$workerName . '] Start scan annotations...' . PHP_EOL;
+            $time = microtime(true);
+        }
 
         // 注解扫描
         $generator = Annotation::scan(self::$config['include_paths'], self::$config['exclude_paths']);
         // 解析注解
         Annotation::parseAnnotations($generator);
 
-        $time = round(microtime(true) - $time, 2);
-        echo '[Process:' . self::$workerName . '] Scan annotations completed, time: ' . $time . 's' . PHP_EOL;
+        if ($isFirstWorker) {
+            $time = round(microtime(true) - $time, 2);
+            echo '[Process:' . self::$workerName . '] Scan annotations completed, time: ' . $time . 's' . PHP_EOL;
+        }
     }
 
     /**
