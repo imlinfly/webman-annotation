@@ -537,10 +537,15 @@ abstract class Annotation
      * @param ReflectionAttribute $attribute
      * @return mixed
      */
-    protected static function reflectionAttributeToAnnotation(ReflectionAttribute $attribute)
+    protected static function reflectionAttributeToAnnotation(ReflectionAttribute $attribute): mixed
     {
-        $instance = $attribute->newInstance();
-        return $instance->setArguments($attribute->getArguments());
+        $annotation = $attribute->newInstance();
+
+        if ($annotation instanceof IAnnotationItem) {
+            $annotation->setArguments($attribute->getArguments());
+        }
+
+        return $annotation;
     }
 
     /**
