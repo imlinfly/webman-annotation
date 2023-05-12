@@ -78,16 +78,21 @@ class AnnotationBootstrap implements Bootstrap
         // 绑定容器回调
         self::bindCallbackBeforeCall();
 
-        echo '[Process:' . self::$workerName . '] Start scan annotations...' . PHP_EOL;
-        $time = microtime(true);
+        $isFirstWorker = $worker->id === 0;
+        if ($isFirstWorker) {
+            echo '[Process:' . self::$workerName . '] Start scan annotations...' . PHP_EOL;
+            $time = microtime(true);
+        }
 
         // 注解扫描
         $generator = Annotation::scan(self::$config['include_paths'], self::$config['exclude_paths']);
         // 解析注解
         Annotation::parseAnnotations($generator);
 
-        $time = round(microtime(true) - $time, 2);
-        echo '[Process:' . self::$workerName . '] Scan annotations completed, time: ' . $time . 's' . PHP_EOL;
+        if ($isFirstWorker) {
+            $time = round(microtime(true) - $time, 2);
+            echo '[Process:' . self::$workerName . '] Scan annotations completed, time: ' . $time . 's' . PHP_EOL;
+        }
 
         self::$isInit = true;
         self::triggerEvent();
