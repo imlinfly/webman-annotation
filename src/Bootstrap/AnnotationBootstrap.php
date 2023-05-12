@@ -64,6 +64,12 @@ class AnnotationBootstrap implements Bootstrap
         // 初始化配置
         self::initConfig();
 
+        // 单元测试模式下需要设置进程名称，否则无法获取到进程名称导致跳过注解扫描
+        if (defined('PHPUNIT_COMPOSER_INSTALL') || defined('__PHPUNIT_PHAR__')) {
+            $worker = new \stdClass();
+            $worker->name = 'phpunit';
+        }
+
         // 跳过忽略的进程
         if (!$worker || self::isIgnoreProcess(self::$workerName = $worker->name)) {
             return;
