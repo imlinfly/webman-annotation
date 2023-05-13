@@ -68,6 +68,7 @@ class AnnotationBootstrap implements Bootstrap
         if (defined('PHPUNIT_COMPOSER_INSTALL') || defined('__PHPUNIT_PHAR__')) {
             $worker = new \stdClass();
             $worker->name = 'phpunit';
+            $worker->id = 0;
         }
 
         // 跳过忽略的进程
