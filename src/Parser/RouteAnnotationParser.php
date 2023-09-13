@@ -10,6 +10,7 @@ declare (strict_types=1);
 
 namespace LinFly\Annotation\Parser;
 
+use LinFly\Annotation\Attributes\Route\DeleteMapping;
 use LinFly\Annotation\Attributes\Route\RequestMapping;
 use LinFly\Annotation\Bootstrap\AnnotationBootstrap;
 use LinFly\Annotation\Contracts\IAnnotationParser;
@@ -137,6 +138,7 @@ abstract class RouteAnnotationParser implements IAnnotationParser
             case PatchMapping::class:
             case OptionsMapping::class:
             case PutMapping::class:
+            case DeleteMapping::class:
                 static::$routes[] = $item;
                 break;
 
