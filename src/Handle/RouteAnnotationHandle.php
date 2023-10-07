@@ -14,6 +14,7 @@ use LinFly\Annotation\Bootstrap\AnnotationBootstrap;
 use LinFly\Annotation\Interfaces\IAnnotationHandle;
 use LinFly\Annotation\Route\BindRoute;
 use LinFly\Annotation\Route\Controller;
+use LinFly\Annotation\Route\DeleteRoute;
 use LinFly\Annotation\Route\GetRoute;
 use LinFly\Annotation\Route\HeadRoute;
 use LinFly\Annotation\Route\Middleware;
@@ -137,6 +138,7 @@ abstract class RouteAnnotationHandle implements IAnnotationHandle
             case PatchRoute::class:
             case OptionsRoute::class:
             case PutRoute::class:
+            case DeleteRoute::class:
                 static::$routes[] = $item;
                 break;
 
