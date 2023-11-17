@@ -35,7 +35,7 @@ class ValidateAnnotationHandle implements IAnnotationHandle
         } elseif ($item['type'] == 'method') {
             $key = $item['class'] . '::' . $item['method'];
         } else {
-            throw new \RuntimeException('验证器注解不支持在' . $item['type'] . '使用');
+            throw new \RuntimeException('注解验证器不支持在' . $item['type'] . '使用');
         }
 
         self::$validates[$key] ??= [];
