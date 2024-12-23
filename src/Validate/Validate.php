@@ -13,6 +13,7 @@ namespace LinFly\Annotation\Validate;
 use Attribute;
 use Doctrine\Common\Annotations\Annotation\Target;
 use LinFly\Annotation\AbstractAnnotationAttribute;
+use LinFly\Annotation\Parser\ValidateAnnotationParser;
 
 /**
  * @Annotation
@@ -38,5 +39,10 @@ class Validate extends AbstractAnnotationAttribute
     {
         // 解析参数
         $this->setArguments(func_get_args(), 'params');
+    }
+
+    public static function getParser(): string
+    {
+        return ValidateAnnotationParser::class;
     }
 }
