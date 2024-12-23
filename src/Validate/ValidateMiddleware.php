@@ -63,10 +63,10 @@ class ValidateMiddleware implements MiddlewareInterface
 
         foreach ($params as $param) switch ($param) {
             case '$post':
-                $data = array_merge($data, $request->get());
+                $data = array_merge($data, $request->post());
                 break;
             case '$get':
-                $data = array_merge($data, $request->post());
+                $data = array_merge($data, $request->get());
                 break;
             case '$all':
                 $data = array_merge($data, $request->all());
