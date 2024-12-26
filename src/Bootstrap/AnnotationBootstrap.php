@@ -46,7 +46,6 @@ class AnnotationBootstrap implements Bootstrap
      * @var string[]
      */
     public static array $ignoreProcess = [
-        '',
         'monitor',
     ];
 
