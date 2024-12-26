@@ -11,10 +11,8 @@ declare (strict_types=1);
 namespace LinFly\Annotation\Bootstrap;
 
 use LinFly\Annotation\Annotation;
-use LinFly\Annotation\Parser\InjectAnnotationParser;
 use LinFly\Annotation\Util\AnnotationUtil;
 use ReflectionException;
-use support\Container;
 use Webman\Bootstrap;
 
 class AnnotationBootstrap implements Bootstrap
@@ -68,9 +66,6 @@ class AnnotationBootstrap implements Bootstrap
             return;
         }
 
-        // 绑定容器回调
-        self::bindCallbackBeforeCall();
-
         $isFirstWorker = $worker?->id === 0;
         if ($isFirstWorker) {
             echo '[Process:' . self::$workerName . '] Start scan annotations...' . PHP_EOL;
@@ -89,20 +84,6 @@ class AnnotationBootstrap implements Bootstrap
 
         self::$isInit = true;
         self::triggerEvent();
-    }
-
-    /**
-     * 绑定容器回调
-     * @return void
-     */
-    protected static function bindCallbackBeforeCall(): void
-    {
-        if (Container::instance() instanceof \LinFly\Container) {
-            // 绑定容器调用前的回调
-            Container::instance()->bindCallbackBeforeCall('*', [
-                InjectAnnotationParser::class, 'bindCallbackBeforeCall'
-            ]);
-        }
     }
 
     /**
