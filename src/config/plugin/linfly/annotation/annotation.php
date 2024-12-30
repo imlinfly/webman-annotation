@@ -18,6 +18,10 @@ return [
     'exclude_paths' => [
         'app/model',
     ],
+    // 忽略的进程名称
+    'ignore_process' => [
+        'monitor'
+    ],
     // 路由设置
     'route' => [
         // 如果注解路由 @Route() 未传参则默认使用方法名作为path

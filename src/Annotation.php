@@ -11,6 +11,7 @@ declare (strict_types=1);
 namespace LinFly\Annotation;
 
 use Closure;
+use ReflectionClassConstant;
 use Throwable;
 use Generator;
 use SplFileInfo;
@@ -104,7 +105,7 @@ abstract class Annotation
     }
 
     /**
-     * 解析类注解 包括：类注解、属性注解、方法注解、方法参数注解，利用Generator提高性能
+     * 解析类注解 包括：类注解、属性注解、方法注解、方法参数、类常量注解，利用Generator提高性能
      * @access public
      * @param string|ReflectionClass $className
      * @return Generator
@@ -130,6 +131,11 @@ abstract class Annotation
         // 获取所有属性的注解
         foreach ($reflectionClass->getProperties() as $reflectionProperty) {
             $property = self::getPropertyAnnotations($reflectionClass, $reflectionProperty);
+            $property && (yield from $property);
+        }
+        // 获取所有常量的注解
+        foreach ($reflectionClass->getReflectionConstants() as $reflectionConstant) {
+            $property = self::getConstantAnnotations($reflectionClass, $reflectionConstant);
             $property && (yield from $property);
         }
     }
@@ -225,7 +231,7 @@ abstract class Annotation
     }
 
     /**
-     * 获取类方法注解
+     * 获取属性注解
      * @access public
      * @param string|ReflectionClass $className
      * @param string|ReflectionProperty $propertyName
@@ -314,6 +320,40 @@ abstract class Annotation
                 'method' => $reflectionMethod->name,
                 // 参数名
                 'parameter_name' => $reflectionParameter->name,
+            ]);
+        });
+
+        return self::filterScanAnnotations($annotations, $scanAnnotations);
+    }
+
+    /**
+     * 获取类常量注解
+     * @access public
+     * @param string|ReflectionClass $className
+     * @param string|ReflectionClassConstant $ConstantName
+     * @param array|string $scanAnnotations
+     * @return array
+     * @throws ReflectionException
+     */
+    public static function getConstantAnnotations(string|ReflectionClass $className, string|ReflectionClassConstant $ConstantName, array|string $scanAnnotations = []): array
+    {
+        $scanAnnotations = (array)$scanAnnotations;
+
+        $reflectionClass = is_string($className) ? new ReflectionClass($className) : $className;
+        $reflectionProperty = is_string($ConstantName) ? new ReflectionProperty($reflectionClass, $ConstantName) : $ConstantName;
+        // 类.属性名 标签
+        $tag = 'constant.' . $reflectionProperty->name;
+
+        $annotations = self::cache($reflectionClass->name, $tag, function () use ($reflectionProperty) {
+            // 扫描注解
+            $attributes = $reflectionProperty->getAttributes();
+            return self::buildScanAnnotationItems($attributes, [
+                'type' => 'constant',
+                // 类名
+                'class' => $reflectionProperty->class,
+                // 属性名
+                'property_name' => $reflectionProperty->name,
+                'property_value' => $reflectionProperty->getValue(),
             ]);
         });
 

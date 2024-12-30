@@ -11,10 +11,8 @@ declare (strict_types=1);
 namespace LinFly\Annotation\Bootstrap;
 
 use LinFly\Annotation\Annotation;
-use LinFly\Annotation\Parser\InjectAnnotationParser;
 use LinFly\Annotation\Util\AnnotationUtil;
 use ReflectionException;
-use support\Container;
 use Webman\Bootstrap;
 
 class AnnotationBootstrap implements Bootstrap
@@ -24,6 +22,9 @@ class AnnotationBootstrap implements Bootstrap
             'app',
         ],
         'exclude_paths' => [],
+        'ignore_process' => [
+            'monitor'
+        ],
         'route' => [
             'use_default_method' => true,
         ],
@@ -42,19 +43,6 @@ class AnnotationBootstrap implements Bootstrap
     public static array $config = [];
 
     /**
-     * 忽略的进程名称
-     * @var string[]
-     */
-    public static array $ignoreProcess = [
-        '',
-        'monitor',
-    ];
-
-    protected static array $events = [];
-
-    protected static bool $isInit = false;
-
-    /**
      * @param $worker
      * @return void
      * @throws ReflectionException
@@ -68,9 +56,6 @@ class AnnotationBootstrap implements Bootstrap
         if (isset($worker->name) && self::isIgnoreProcess(self::$workerName = $worker->name)) {
             return;
         }
-
-        // 绑定容器回调
-        self::bindCallbackBeforeCall();
 
         $isFirstWorker = $worker?->id === 0;
         if ($isFirstWorker) {
@@ -86,23 +71,6 @@ class AnnotationBootstrap implements Bootstrap
         if ($isFirstWorker) {
             $time = round(microtime(true) - $time, 2);
             echo '[Process:' . self::$workerName . '] Scan annotations completed, time: ' . $time . 's' . PHP_EOL;
-        }
-
-        self::$isInit = true;
-        self::triggerEvent();
-    }
-
-    /**
-     * 绑定容器回调
-     * @return void
-     */
-    protected static function bindCallbackBeforeCall(): void
-    {
-        if (Container::instance() instanceof \LinFly\Container) {
-            // 绑定容器调用前的回调
-            Container::instance()->bindCallbackBeforeCall('*', [
-                InjectAnnotationParser::class, 'bindCallbackBeforeCall'
-            ]);
         }
     }
 
@@ -130,11 +98,7 @@ class AnnotationBootstrap implements Bootstrap
      */
     public static function isIgnoreProcess(string $name = null): bool
     {
-        if (empty($name)) {
-            $name = self::$workerName;
-        }
-
-        return in_array($name, self::$ignoreProcess);
+        return in_array($name ?? self::$workerName, self::$config['ignore_process']);
     }
 
     /**
@@ -144,35 +108,5 @@ class AnnotationBootstrap implements Bootstrap
     public static function getWorkerName(): string
     {
         return self::$workerName;
-    }
-
-    /**
-     * 设置忽略的进程名称
-     * @param array $ignoreProcess
-     * @param bool $isClear
-     */
-    public static function setIgnoreProcess(array $ignoreProcess, bool $isClear): void
-    {
-        if ($isClear) {
-            self::$ignoreProcess = $ignoreProcess;
-        } else {
-            self::$ignoreProcess = array_merge(self::$ignoreProcess, $ignoreProcess);
-        }
-    }
-
-    public static function event(callable $callback)
-    {
-        if (self::$isInit) {
-            $callback();
-        } else {
-            self::$events[] = $callback;
-        }
-    }
-
-    protected static function triggerEvent()
-    {
-        foreach (self::$events as $event) {
-            $event();
-        }
     }
 }
