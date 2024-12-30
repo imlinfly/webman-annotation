@@ -491,7 +491,7 @@ abstract class Annotation
      */
     protected static function filterScanAnnotations(array $annotations, array $scanAnnotations): array
     {
-        return $scanAnnotations ? array_filter($annotations, fn($key, $class) => in_array($class, $scanAnnotations)) : $annotations;
+         return $scanAnnotations ? array_filter($annotations, fn($key, $class) => in_array($class, $scanAnnotations), ARRAY_FILTER_USE_BOTH) : $annotations;
     }
 
     /**
