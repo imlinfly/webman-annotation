@@ -144,7 +144,7 @@ abstract class AnnotationUtil
                 }
                 $namespace = $tempNamespace;
                 // 扫描到类
-            } else if ($tokens[$i - 2][0] === T_CLASS && $tokens[$i - 1][0] === T_WHITESPACE && $tokens[$i][0] === T_STRING) {
+            } else if (($tokens[$i - 2][0] === T_CLASS || $tokens[$i - 2][0] === T_ENUM) && $tokens[$i - 1][0] === T_WHITESPACE && $tokens[$i][0] === T_STRING) {
                 // 拼接命名空间和类名
                 $classes[] = ($namespace ? $namespace . '\\' : '') . $tokens[$i][1];
             }
